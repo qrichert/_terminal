@@ -18,7 +18,7 @@ class Terminal {
 				this.m_promptCommand = null;
 					this.m_input = null;
 
-		this.m_apiUrl = location.href;
+		this.m_apiUrl = this.m_parent.dataset.action || location.href;
 
 		this.m_isWaitingForResponse = false;
 		this.m_isWaitingForResponseIntervalHandle = null;

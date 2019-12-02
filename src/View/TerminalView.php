@@ -11,7 +11,7 @@
 		<title>Terminal</title>
 	</head>
 	<body>
-		<div id="terminal"></div>
+		<div id="terminal" data-action="<?= WEBROOT; ?>/xhr"></div>
 
 		<script src="js/lib/goji/SimpleRequest.class.min.js"></script>
 		<script src="js/lib/goji/Terminal.class.min.js"></script>
