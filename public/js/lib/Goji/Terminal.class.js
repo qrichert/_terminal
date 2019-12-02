@@ -1,5 +1,12 @@
 /**
  * Class Terminal
+ *
+ * How to use it:
+ * --------------
+ *
+ * <div id="terminal" data-action="/xhr-terminal"></div>
+ *
+ * new Terminal(document.querySelector('#terminal'));
  */
 class Terminal {
 
