@@ -286,6 +286,7 @@ class Terminal {
 
 		let end = () => {
 			this.stopWaitingForResponse();
+			this.m_input.focus();
 		};
 
 		let error = () => {
@@ -342,6 +343,7 @@ class Terminal {
 
 		let end = () => {
 			this.stopWaitingForResponse();
+			this.m_input.focus();
 		};
 
 		let error = (r = null) => {
@@ -429,6 +431,7 @@ class Terminal {
 
 		let end = () => {
 			this.stopWaitingForResponse();
+			this.m_input.focus();
 		};
 
 		let error = (r = null) => {
