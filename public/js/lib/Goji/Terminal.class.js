@@ -25,6 +25,10 @@ class Terminal {
 
 		this.m_isPasswordMode = false;
 
+		this.m_commandHistory = [];
+		this.m_commandHistoryCount = 0;
+		this.m_commandHistoryIndex = 0;
+
 		this.buildTerminalView();
 
 		this.ehlo();
@@ -102,11 +106,44 @@ class Terminal {
 			return;
 		}
 
-		if (this.m_isPasswordMode)
+		if (e.key === 'ArrowUp') {
+			this.commandHistoryPrevious();
+			return;
+		}
+
+		if (e.key === 'ArrowDown') {
+			this.commandHistoryNext();
+			return;
+		}
+	}
+
+	commandHistoryPrevious() {
+
+		if (this.m_isPasswordMode || this.m_commandHistoryCount === 0)
 			return;
 
+		this.m_commandHistoryIndex--;
 
-		// TODO: arrow up down history
+		if (this.m_commandHistoryIndex < 0) { // At start
+			this.m_commandHistoryIndex = 0;
+		}
+
+		this.m_input.value = this.m_commandHistory[this.m_commandHistoryIndex];
+	}
+
+	commandHistoryNext() {
+
+		if (this.m_isPasswordMode || this.m_commandHistoryCount === 0)
+			return;
+
+		this.m_commandHistoryIndex++;
+
+		if (this.m_commandHistoryIndex >= this.m_commandHistoryCount) {
+			this.m_commandHistoryIndex = this.m_commandHistoryCount;
+			this.m_input.value = ''; // If overflow, clear input (back to normal)
+		} else {
+			this.m_input.value = this.m_commandHistory[this.m_commandHistoryIndex];
+		}
 	}
 
 	/**
@@ -370,6 +407,10 @@ class Terminal {
 		}
 
 		let command = this.m_input.value.trim().toLowerCase();
+
+		this.m_commandHistory.push(command);
+		this.m_commandHistoryCount = this.m_commandHistory.length;
+		this.m_commandHistoryIndex = this.m_commandHistoryCount; // last (will be --; before display)
 
 		if (command === 'clear') {
 			this.clearOutput();
