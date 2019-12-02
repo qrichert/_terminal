@@ -39,8 +39,12 @@
 	align-items: center;
 }
 
-.terminal__prompt--info .user { color: #9bdd54; font-weight: bold;}
-.terminal__prompt--info .path { color: #658ec5; font-weight: bold;}
+.terminal__prompt--info {
+	flex-shrink: 0;
+}
+
+.terminal__prompt--info .user { color: #9bdd54; font-weight: bold; }
+.terminal__prompt--info .path { color: #658ec5; font-weight: bold; }
 
 .terminal__prompt--command {
 	width: 100%;

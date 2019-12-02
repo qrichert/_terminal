@@ -24,14 +24,6 @@ class Terminal {
 
 		this.buildTerminalView();
 
-		// If loaded while active session
-		if (typeof this.m_parent.dataset.loggedIn !== 'undefined'
-			 && this.m_parent.dataset.loggedIn === 'true') { // Starts logged in
-			this.switchToCommandInterface();
-		} else {
-			this.switchToPasswordInterface();
-		}
-
 		this.ehlo();
 
 		this.m_input.focus();
@@ -89,6 +81,7 @@ class Terminal {
 					this.m_input = document.createElement('input');
 						this.m_input.autocapitalize = 'off';
 						this.m_input.spellcheck = 'false';
+						this.m_input.style.visibility = 'hidden';
 							this.m_promptCommand.appendChild(this.m_input);
 
 		this.m_parent.appendChild(docFrag);
@@ -139,19 +132,46 @@ class Terminal {
 		clearInterval(this.m_isWaitingForResponseIntervalHandle);
 	}
 
-	commandError() {
+	/**
+	 * @param {String} output
+	 * @param {String|null} lastCommand
+	 * @private
+	 */
+	printOutput(output, lastCommand = null) {
 
-		alert('error');
-	}
+		let docFrag = document.createDocumentFragment();
 
-	commandLoad(response = null) {
+			if (typeof lastCommand === 'string' || lastCommand instanceof String) { // typeof new String('') = object
 
-		if (response === null || response.status === 'ERROR') {
-			this.commandError();
-			return;
-		}
+				let promptInfo = document.createElement('div');
+					promptInfo.classList.add('terminal__prompt--info');
+						docFrag.appendChild(promptInfo);
 
-		alert('success');
+					let promptInfoUser = this.m_promptInfoUser.cloneNode(true);
+						promptInfo.appendChild(promptInfoUser);
+
+					let promptInfoSeparator = this.m_promptInfoSeparator.cloneNode(true);
+						promptInfo.appendChild(promptInfoSeparator);
+
+					let promptInfoPath = this.m_promptInfoPath.cloneNode(true);
+						promptInfo.appendChild(promptInfoPath);
+
+					let promptInfoWaitingForCommand = this.m_promptInfoWaitingForCommand.cloneNode(true);
+						promptInfoWaitingForCommand.style.display = 'inline';
+							promptInfo.appendChild(promptInfoWaitingForCommand);
+
+					promptInfo.appendChild(document.createTextNode(String.fromCharCode(160))); // &nbsp;
+
+					let lastCommandText = document.createElement('span');
+						lastCommandText.textContent = lastCommand;
+							promptInfo.appendChild(lastCommandText);
+			}
+
+			let commandResult = document.createElement('div');
+				commandResult.innerHTML = output;
+					docFrag.appendChild(commandResult);
+
+		this.m_output.appendChild(docFrag);
 	}
 
 	/**
@@ -161,14 +181,54 @@ class Terminal {
 	 */
 	ehlo() {
 		let data = new FormData();
-			data.append('type', 'ehlo');
+			data.append('request', 'ehlo');
+
+		let end = () => {
+			this.stopWaitingForResponse();
+		};
+
+		let error = () => {
+			end();
+		};
+
+		let load = (r) => {
+
+			if (r === null || r.status === 'ERROR') {
+				error();
+				return;
+			}
+
+			if (typeof r.response === 'undefined' || r.response === null) {
+				error();
+				return;
+			}
+
+			this.m_input.style.visibility = 'visible';
+
+			if (r.response === 'ready') {
+
+				this.m_promptInfoUser.textContent = r.user;
+				this.m_promptInfoSeparator.textContent = ':';
+				this.m_promptInfoPath.textContent = r.path;
+
+				this.switchToCommandInterface();
+			} else {
+				this.switchToPasswordInterface();
+			}
+
+			this.printOutput(r.output);
+
+			end();
+		};
+
+		this.startWaitingForResponse();
 
 		SimpleRequest.post(
 			this.m_apiUrl,
 			data,
-			(r) => { this.commandLoad(r); },
-			() => { this.commandError(); },
-			() => { this.commandError(); },
+			load,
+			error,
+			error,
 			null,
 			{ get_json: true }
 		);

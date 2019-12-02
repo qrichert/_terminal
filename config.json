@@ -1,9 +1,5 @@
 {
+	"welcome": "*************\n<em>Welcome Back!</em>\n*************\n",
 	"home": "/var/www",
-	"users": [
-		{
-			"username": "root",
-			"password": "root"
-		}
-	]
+	"password": "root"
 }
