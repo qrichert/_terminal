@@ -48,6 +48,26 @@
 				HttpResponse::setRobotsHeader(HttpResponse::ROBOTS_NOINDEX);
 		}
 
+		private function getLoginString(): string {
+
+			$str = $this->m_config['welcome'] ?? '';
+
+			if ($this->m_config['password'] == 'root')
+				$str .= $this->getWarningMessage('Password still has default value.');
+
+			$str .= 'Password: ';
+
+			return nl2br($str);
+		}
+
+		private function getWarningMessage(string $message): string {
+			return '<span class="message__warning">[Warning] ' . $message . '</span>' . "\n";
+		}
+
+		private function getErrorMessage(string $message): string {
+			return '<span class="message__error">[Error] ' . $message . '</span>' . "\n";
+		}
+
 		/**
 		 * Get machine info to display (user, host, etc.)
 		 * @param array $info
@@ -106,7 +126,7 @@
 				} else {
 
 					$response['response'] = 'require-authentication';
-					$response['output'] = nl2br(($this->m_config['welcome'] ?? '') . 'Password:');
+					$response['output'] = $this->getLoginString();
 				}
 
 				HttpResponse::JSON($response, true);
@@ -120,7 +140,7 @@
 
 					HttpResponse::JSON([
 						'response' => 'require-authentication',
-						'output' => 'Wrong password.',
+						'output' => $this->getErrorMessage('Wrong password.'),
 						'pws' => $_POST['password']
 					], false);
 				}
@@ -160,7 +180,7 @@
 					Session::unset('_terminal');
 					HttpResponse::JSON([
 						'response' => 'exit-required',
-						'output' => nl2br(($this->m_config['welcome'] ?? '') . 'Password:')
+						'output' => $this->getLoginString()
 					], true);
 				}
 
