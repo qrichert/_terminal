@@ -32,6 +32,8 @@ RewriteRule .* https://%{HTTP_HOST}%{REQUEST_URI} [QSA,L,R=301]
 # will be redirected to index.php
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME} !\.css$
+RewriteCond %{REQUEST_FILENAME} !\.js$
 RewriteRule .* index.php [QSA,L]
 
 # --- ERRORS ---
