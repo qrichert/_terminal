@@ -48,6 +48,11 @@
 				HttpResponse::setRobotsHeader(HttpResponse::ROBOTS_NOINDEX);
 		}
 
+		/**
+		 * Get machine info to display (user, host, etc.)
+		 * @param array $info
+		 * @throws \Exception
+		 */
 		private function getSessionInfo(array &$info) {
 
 			$username = trim(Terminal::execute('whoami'));
@@ -77,6 +82,11 @@
 			$info['output'] = 'Last login: ' . date('D M j H:i:s');
 		}
 
+		/**
+		 * Treat incoming data.
+		 *
+		 * Returns a JSON response with status (bool), response (string) and output (string)
+		 */
 		private function processRequest() {
 
 			if (empty($_POST['request']))
@@ -151,6 +161,41 @@
 					HttpResponse::JSON([
 						'response' => 'exit-required',
 						'output' => nl2br(($this->m_config['welcome'] ?? '') . 'Password:')
+					], true);
+				}
+
+			// Generic
+
+				else {
+					$disallowedCommands = ['ssh', 'telnet'];
+					$editors = ['vim', 'vi', 'nano', 'emacs'];
+
+					$command = preg_split('#(&&|;)#', $_POST['command']);
+
+					$output = [];
+
+					// Process commands one by one
+					foreach ($command as &$c) {
+						$cmdParts = explode(' ', $c);
+						error_log(print_r($cmdParts, true));
+
+						// Replace editors with cat
+						$c = str_replace($editors, 'cat', $c);
+
+						if (in_array($cmdParts[0], $disallowedCommands)) {
+							$output[] = "Command '{$cmdParts[0]}' not allowed.\n";
+							continue;
+						}
+
+						$output[] = Terminal::execute($c);
+					}
+					unset($c);
+
+					$output = implode("", $output); // They already end with newline \n
+
+					HttpResponse::JSON([
+						'response' => 'ok',
+						'output' => nl2br($output)
 					], true);
 				}
 			}
