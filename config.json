@@ -1,4 +1,9 @@
 {
-	"root": "/var/www",
-	"password": "abcdef"
+	"home": "/var/www",
+	"users": [
+		{
+			"username": "root",
+			"password": "root"
+		}
+	]
 }

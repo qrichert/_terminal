@@ -2,4 +2,6 @@
 
 :root {
 	--gutter-thin: 7px;
+	--input-height-default: 33px;
+	--text-size-default: 16px;
 }
