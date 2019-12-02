@@ -115,6 +115,7 @@ class Terminal {
 	switchToCommandInterface() {
 		this.m_isPasswordMode = false;
 		this.m_input.type = 'text';
+		this.m_input.name = 'terminal[command]';
 	}
 
 	/**
@@ -123,6 +124,7 @@ class Terminal {
 	switchToPasswordInterface() {
 		this.m_isPasswordMode = true;
 		this.m_input.type = 'password';
+		this.m_input.name = 'terminal[password]';
 	}
 
 	/**
@@ -217,6 +219,26 @@ class Terminal {
 	}
 
 	/**
+	 * @param {String} user
+	 * @param {String} path
+	 * @private
+	 */
+	setPromptInfo(user, path) {
+		this.m_promptInfoUser.textContent = user;
+		this.m_promptInfoSeparator.textContent = ':';
+		this.m_promptInfoPath.textContent = path;
+	}
+
+	/**
+	 * @private
+	 */
+	clearPromptInfo() {
+		this.m_promptInfoUser.textContent = '';
+		this.m_promptInfoSeparator.textContent = '';
+		this.m_promptInfoPath.textContent = '';
+	}
+
+	/**
 	 * Initial, set-up request
 	 *
 	 * @private
@@ -248,11 +270,7 @@ class Terminal {
 			this.m_input.style.visibility = 'visible';
 
 			if (r.response === 'ready') {
-
-				this.m_promptInfoUser.textContent = r.user;
-				this.m_promptInfoSeparator.textContent = ':';
-				this.m_promptInfoPath.textContent = r.path;
-
+				this.setPromptInfo(r.user, r.path);
 				this.switchToCommandInterface();
 			} else {
 				this.switchToPasswordInterface();
@@ -277,6 +295,9 @@ class Terminal {
 		);
 	}
 
+	/**
+	 * @private
+	 */
 	logIn() {
 		let data = new FormData();
 			data.append('request', 'log-in');
@@ -309,15 +330,9 @@ class Terminal {
 			}
 
 			if (r.response === 'ready') {
-
 				this.clearOutput();
-
-				this.m_promptInfoUser.textContent = r.user;
-				this.m_promptInfoSeparator.textContent = ':';
-				this.m_promptInfoPath.textContent = r.path;
-
+				this.setPromptInfo(r.user, r.path);
 				this.switchToCommandInterface();
-
 			} else {
 				error(r);
 				return;
@@ -342,8 +357,10 @@ class Terminal {
 		);
 	}
 
+	/**
+	 * @private
+	 */
 	command() {
-
 		if (this.m_isWaitingForResponse)
 			return;
 
@@ -395,15 +412,13 @@ class Terminal {
 				return;
 			}
 
-			switch (r.response) {
-				case 'exit-required':
-					// TODO:
-					return;
-					break;
-			}
-
 			if (typeof r.output !== 'undefined' && r.output !== null)
-				this.printOutput(r.output);
+				this.printOutput(r.output, command);
+
+			if (r.response === 'exit-required') { // User is logged out, reload to reset terminal
+				this.clearPromptInfo();
+				this.switchToPasswordInterface();
+			}
 
 			end();
 		};

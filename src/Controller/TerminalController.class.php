@@ -137,9 +137,21 @@
 
 			// Special commands
 
-				if ($_POST['command'] == 'exit') {
+				// no command
+				if (empty($_POST['command'])) {
+					HttpResponse::JSON([
+						'response' => 'ok',
+						'output' => ''
+					], true);
+				}
+
+				// exit
+				else if ($_POST['command'] == 'exit') {
 					Session::unset('_terminal');
-					HttpResponse::JSON([], true);
+					HttpResponse::JSON([
+						'response' => 'exit-required',
+						'output' => nl2br(($this->m_config['welcome'] ?? '') . 'Password:')
+					], true);
 				}
 			}
 
