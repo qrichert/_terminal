@@ -456,6 +456,9 @@ class Terminal {
 			if (typeof r.output !== 'undefined' && r.output !== null)
 				this.printOutput(r.output, command);
 
+			if (typeof r.path !== 'undefined' && r.path !== null)
+				this.m_promptInfoPath.textContent = r.path;
+
 			if (r.response === 'exit-required') { // User is logged out, reload to reset terminal
 				this.clearPromptInfo();
 				this.switchToPasswordInterface();

@@ -16,6 +16,7 @@
 		private $m_config;
 		private $m_isLoggedIn;
 		private $m_isAjaxRequest;
+		private $m_currentDirectory;
 
 		/* <CONSTANTS> */
 
@@ -30,13 +31,24 @@
 		// Config
 			$this->m_config = json_decode(file_get_contents('../config.json'), true);
 
+			// Welcome
 			if (!empty($this->m_config['welcome']))
 				$this->m_config['welcome'] .= "\n";
 
+			// Password
 			if (!isset($this->m_config['password']))
 				throw new Exception('No password set.', self::E_NO_PASSWORD);
 
 			$this->m_config['password'] = (string) $this->m_config['password'];
+
+			// Home
+			$this->m_config['home'] = $this->m_config['home'] ?? '';
+
+				if (!is_dir($this->m_config['home']))
+					$this->m_config['home'] = dirname(dirname(__DIR__)) . '/public';
+
+				if ($this->m_config['home'] != '/' && mb_substr($this->m_config['home'], -1) == '/')
+					$this->m_config['home'] = mb_substr($this->m_config['home'], 0, -1);
 
 		// Logged in
 			$this->m_isLoggedIn = !empty(Session::get('_terminal'));
@@ -79,8 +91,48 @@
 			return '<span class="message__error">[Error] ' . $message . '</span>' . "\n";
 		}
 
-		private function changeDirectory() {
+		private function updateDirectory(): void {
+			// cd
+			if (Session::get('_terminal--current-directory') !== null)
+				$this->changeDirectory(Session::get('_terminal--current-directory'));
+			else
+				$this->changeDirectory($this->m_config['home']);
+		}
 
+		/**
+		 * cd
+		 *
+		 * @param string $directory
+		 * @return bool
+		 */
+		private function changeDirectory(string $directory): bool {
+
+			if ($directory != '/' && mb_substr($directory, -1) == '/')
+				$directory = mb_substr($directory, 0, -1);
+
+			if (@chdir($directory)) {
+				$directory = getcwd(); // The real new value, not '..' or '.'
+				Session::set('_terminal--current-directory', $directory);
+				return true;
+			}
+
+			return false;
+		}
+
+		/**
+		 * @return string
+		 */
+		private function getCurrentDirectoryName(): string  {
+
+			if (Session::get('_terminal--current-directory') == $this->m_config['home'])
+				return '~';
+
+			$dirName = basename(Session::get('_terminal--current-directory'));
+
+			if (empty($dirName))
+				return '/';
+			else
+				return $dirName;
 		}
 
 		/**
@@ -113,7 +165,7 @@
 				$host = SwissKnife::ceil_str($host, 20, '...');
 
 			$info['user'] = $username . '@' . $host;
-			$info['path'] = SwissKnife::ceil_str(basename(getcwd()), 20, '...');
+			$info['path'] = SwissKnife::ceil_str($this->getCurrentDirectoryName(), 20, '...');
 			$info['output'] = 'Last login: ' . date('D M j H:i:s');
 		}
 
@@ -127,6 +179,9 @@
 			if (empty($_POST['request']))
 				HttpResponse::JSON([], false);
 
+			if ($this->m_isLoggedIn)
+				$this->updateDirectory();
+
 /* <EHLO> */
 
 			if ($_POST['request'] == self::EHLO) {
@@ -134,6 +189,8 @@
 				$response = [];
 
 				if ($this->m_isLoggedIn) {
+
+					$this->updateDirectory();
 
 					$response['response'] = 'ready';
 					$this->getSessionInfo($response);
@@ -155,12 +212,12 @@
 
 					HttpResponse::JSON([
 						'response' => 'require-authentication',
-						'output' => $this->getErrorMessage('Wrong password.'),
-						'pws' => $_POST['password']
+						'output' => $this->getErrorMessage('Wrong password.')
 					], false);
 				}
 
 				Session::set('_terminal', true);
+				$this->updateDirectory();
 
 				$response = [];
 
@@ -192,7 +249,10 @@
 
 				// exit
 				else if ($_POST['command'] == 'exit') {
+
 					Session::unset('_terminal');
+					Session::unset('_terminal--current-directory');
+
 					HttpResponse::JSON([
 						'response' => 'exit-required',
 						'output' => $this->getLoginString()
@@ -214,12 +274,26 @@
 					foreach ($command as &$c) {
 
 						$c = trim($c);
-
 						$cmdParts = explode(' ', $c);
-						error_log($c);
 
-						// Replace editors with cat
-						$c = str_replace($editors, 'cat', $c);
+						// cd
+						if ($cmdParts[0] == 'cd') {
+
+							if (empty($cmdParts[1])) {
+								$output[] = $this->getErrorMessage('cd: No argument provided.');
+								break;
+							}
+
+							if ($cmdParts[1] == '~') {
+								$this->changeDirectory($this->m_config['home']);
+								continue;
+							}
+
+							if (!$this->changeDirectory($cmdParts[1]))
+								$output[] = $this->getErrorMessage("cd: '{$cmdParts[1]}' doesn't exist.");
+
+							continue;
+						}
 
 						// Disallowed commands
 						if (in_array($cmdParts[0], $disallowedCommands)) {
@@ -233,15 +307,20 @@
 							continue;
 						}
 
+						// Replace editors with cat
+						$c = str_replace($editors, 'cat', $c);
+
 						$output[] = Terminal::execute($c);
 					}
 					unset($c);
 
 					$output = implode("", $output); // They already end with newline \n
 
+
 					HttpResponse::JSON([
 						'response' => 'ok',
-						'output' => nl2br($output)
+						'output' => nl2br($output),
+						'path' => $this->getCurrentDirectoryName()
 					], true);
 				}
 			}
