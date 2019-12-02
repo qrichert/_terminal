@@ -48,6 +48,9 @@
 				HttpResponse::setRobotsHeader(HttpResponse::ROBOTS_NOINDEX);
 		}
 
+		/**
+		 * @return string
+		 */
 		private function getLoginString(): string {
 
 			$str = $this->m_config['welcome'] ?? '';
@@ -60,12 +63,24 @@
 			return nl2br($str);
 		}
 
+		/**
+		 * @param string $message
+		 * @return string
+		 */
 		private function getWarningMessage(string $message): string {
 			return '<span class="message__warning">[Warning] ' . $message . '</span>' . "\n";
 		}
 
+		/**
+		 * @param string $message
+		 * @return string
+		 */
 		private function getErrorMessage(string $message): string {
 			return '<span class="message__error">[Error] ' . $message . '</span>' . "\n";
+		}
+
+		private function changeDirectory() {
+
 		}
 
 		/**
@@ -188,6 +203,7 @@
 
 				else {
 					$disallowedCommands = ['ssh', 'telnet'];
+					$disallowedInCombinedCommands = ['clear', 'exit'];
 					$editors = ['vim', 'vi', 'nano', 'emacs'];
 
 					$command = preg_split('#(&&|;)#', $_POST['command']);
@@ -196,14 +212,24 @@
 
 					// Process commands one by one
 					foreach ($command as &$c) {
+
+						$c = trim($c);
+
 						$cmdParts = explode(' ', $c);
-						error_log(print_r($cmdParts, true));
+						error_log($c);
 
 						// Replace editors with cat
 						$c = str_replace($editors, 'cat', $c);
 
+						// Disallowed commands
 						if (in_array($cmdParts[0], $disallowedCommands)) {
-							$output[] = "Command '{$cmdParts[0]}' not allowed.\n";
+							$output[] = $this->getErrorMessage("Command '{$cmdParts[0]}' not allowed.");
+							continue;
+						}
+
+						// Commands that must be single
+						if (in_array($cmdParts[0], $disallowedInCombinedCommands)) {
+							$output[] = $this->getWarningMessage("Command '{$cmdParts[0]}' must be used alone.");
 							continue;
 						}
 
