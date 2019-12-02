@@ -14,7 +14,7 @@
 		<div id="terminal"></div>
 
 		<script src="js/lib/goji/SimpleRequest.class.min.js"></script>
-		<script src="js/lib/goji/Terminal.class.js"></script>
+		<script src="js/lib/goji/Terminal.class.min.js"></script>
 		<script>
 			(function () {
 				new Terminal(document.querySelector('#terminal'))

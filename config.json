@@ -1,5 +1,10 @@
 {
 	"welcome": "*************\n<em>Welcome Back!</em>\n*************\n",
 	"home": "/var/www",
-	"password": "root"
+	"password": "root",
+	"alias": [
+		["git status", "git st"],
+		["git checkout", "git co"],
+		["git commit", "git ci"]
+	]
 }

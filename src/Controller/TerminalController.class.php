@@ -2,7 +2,6 @@
 
 	namespace App\Controller;
 
-	use Exception;
 	use Goji\Core\HttpResponse;
 	use Goji\Core\Session;
 	use Goji\Parsing\RegexPatterns;
@@ -16,15 +15,12 @@
 		private $m_config;
 		private $m_isLoggedIn;
 		private $m_isAjaxRequest;
-		private $m_currentDirectory;
 
 		/* <CONSTANTS> */
 
 		const EHLO = 'ehlo'; // Get current state from server
 		const LOG_IN = 'log-in'; // Request log in
 		const COMMAND = 'command'; // Regular command
-
-		const E_NO_PASSWORD = 0;
 
 		public function __construct() {
 
@@ -36,10 +32,10 @@
 				$this->m_config['welcome'] .= "\n";
 
 			// Password
-			if (!isset($this->m_config['password']))
-				throw new Exception('No password set.', self::E_NO_PASSWORD);
+			$this->m_config['password'] = $this->m_config['password'] ?? null;
 
-			$this->m_config['password'] = (string) $this->m_config['password'];
+				if ($this->m_config['password'] === null)
+					$this->m_config['password'] = '';
 
 			// Home
 			$this->m_config['home'] = $this->m_config['home'] ?? '';
@@ -49,6 +45,12 @@
 
 				if ($this->m_config['home'] != '/' && mb_substr($this->m_config['home'], -1) == '/')
 					$this->m_config['home'] = mb_substr($this->m_config['home'], 0, -1);
+
+			// Alias
+			$this->m_config['alias'] = $this->m_config['alias'] ?? null;
+
+				if (!is_array($this->m_config['alias']))
+					$this->m_config['alias'] = [];
 
 		// Logged in
 			$this->m_isLoggedIn = !empty(Session::get('_terminal'));
@@ -69,6 +71,8 @@
 
 			if ($this->m_config['password'] == 'root')
 				$str .= $this->getWarningMessage('Password still has default value.');
+			else if (empty($this->m_config['password']))
+				$str .= $this->getWarningMessage('No password set.');
 
 			$str .= 'Password: ';
 
@@ -208,7 +212,7 @@
 
 			else if ($_POST['request'] == self::LOG_IN) {
 
-				if (empty($_POST['password']) || $_POST['password'] !== $this->m_config['password']) {
+				if (!isset($_POST['password']) || $_POST['password'] !== $this->m_config['password']) {
 
 					HttpResponse::JSON([
 						'response' => 'require-authentication',
@@ -305,6 +309,20 @@
 						if (in_array($cmdParts[0], $disallowedInCombinedCommands)) {
 							$output[] = $this->getWarningMessage("Command '{$cmdParts[0]}' must be used alone.");
 							continue;
+						}
+
+						// Alias
+						foreach ($this->m_config['alias'] as $alias) {
+
+							$firstCommandPart = mb_strpos($c, ' ');
+
+								if ($firstCommandPart === false)
+									$firstCommandPart = mb_strlen($c);
+
+							// Commands must start the same
+							// 'git st' matches, but 'ls git st' doesn't
+							if (mb_substr($c, 0, $firstCommandPart) == mb_substr($alias[1], 0, $firstCommandPart))
+								$c = str_replace($alias[1], $alias[0], $c);
 						}
 
 						// Replace editors with cat
