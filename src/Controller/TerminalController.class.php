@@ -19,12 +19,15 @@
 
 		/* <CONSTANTS> */
 
-		const EHLO = 'ehlo';
+		const EHLO = 'ehlo'; // Get current state from server
+		const LOG_IN = 'log-in'; // Request log in
+		const COMMAND = 'command'; // Regular command
 
 		const E_NO_PASSWORD = 0;
 
 		public function __construct() {
 
+		// Config
 			$this->m_config = json_decode(file_get_contents('../config.json'), true);
 
 			if (!empty($this->m_config['welcome']))
@@ -33,12 +36,45 @@
 			if (!isset($this->m_config['password']))
 				throw new Exception('No password set.', self::E_NO_PASSWORD);
 
+			$this->m_config['password'] = (string) $this->m_config['password'];
+
+		// Logged in
 			$this->m_isLoggedIn = !empty(Session::get('_terminal'));
 
+		// Ajax
 			$this->m_isAjaxRequest = isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] == 'XMLHttpRequest';
 
 			if ($this->m_isAjaxRequest)
 				HttpResponse::setRobotsHeader(HttpResponse::ROBOTS_NOINDEX);
+		}
+
+		private function getSessionInfo(array &$info) {
+
+			$username = trim(Terminal::execute('whoami'));
+				$username = SwissKnife::ceil_str($username, 20, '...');
+
+			$host = trim(Terminal::execute('hostname'));
+
+				// If domain name, keep only DOMAIN & TLD
+				// webm042.cluster1337.gra.hosting.ovh.net -> ovh.net
+				if (preg_match(RegexPatterns::validateDomainName(), $host)) {
+
+					$host = explode('.', $host);
+					$nbParts = count($host);
+					$host = $host[$nbParts - 2] . '.' . $host[$nbParts - 1]; // DOMAIN + TLD
+
+				// If space, use part up until first space
+				// MacBook Pro de Quentin -> MacBook
+				} else if (strpos($host, ' ') !== false) {
+
+					$host = mb_substr($host, 0, strpos($host, ' '));
+				}
+
+				$host = SwissKnife::ceil_str($host, 20, '...');
+
+			$info['user'] = $username . '@' . $host;
+			$info['path'] = SwissKnife::ceil_str(basename(getcwd()), 20, '...');
+			$info['output'] = 'Last login: ' . date('D M j H:i:s');
 		}
 
 		private function processRequest() {
@@ -46,39 +82,16 @@
 			if (empty($_POST['request']))
 				HttpResponse::JSON([], false);
 
+/* <EHLO> */
+
 			if ($_POST['request'] == self::EHLO) {
 
 				$response = [];
 
 				if ($this->m_isLoggedIn) {
 
-					$username = trim(Terminal::execute('whoami'));
-						$username = SwissKnife::ceil_str($username, 20, '...');
-
-					$host = trim(Terminal::execute('hostname'));
-
-						// If domain name, keep only DOMAIN & TLD
-						// webm042.cluster1337.gra.hosting.ovh.net -> ovh.net
-						if (preg_match(RegexPatterns::validateDomainName(), $host)) {
-
-							$host = explode('.', $host);
-							$nbParts = count($host);
-							$host = $host[$nbParts - 2] . '.' . $host[$nbParts - 1]; // DOMAIN + TLD
-
-						// If space, use part up until first space
-						// MacBook Pro de Quentin -> MacBook
-						} else if (strpos($host, ' ') !== false) {
-
-							$host = mb_substr($host, 0, strpos($host, ' '));
-						}
-
-						$host = SwissKnife::ceil_str($host, 20, '...');
-
 					$response['response'] = 'ready';
-					$response['user'] = $username . '@' . $host;
-					$response['path'] = SwissKnife::ceil_str(basename(getcwd()), 20, '...');
-					$response['output'] = "Last login: Mon Dec  2 12:27:08 on ttys000";
-					$response['output'] = 'Last login: ' . date('D M j H:i:s');
+					$this->getSessionInfo($response);
 
 				} else {
 
@@ -89,7 +102,48 @@
 				HttpResponse::JSON($response, true);
 			}
 
-			HttpResponse::JSON([], true);
+/* <LOG IN> */
+
+			else if ($_POST['request'] == self::LOG_IN) {
+
+				if (empty($_POST['password']) || $_POST['password'] !== $this->m_config['password']) {
+
+					HttpResponse::JSON([
+						'response' => 'require-authentication',
+						'output' => 'Wrong password.',
+						'pws' => $_POST['password']
+					], false);
+				}
+
+				Session::set('_terminal', true);
+
+				$response = [];
+
+				$response['response'] = 'ready';
+				$this->getSessionInfo($response);
+
+				HttpResponse::JSON($response, true);
+			}
+
+/* <COMMAND> */
+
+			else if ($_POST['request'] == self::COMMAND) {
+
+				if (!$this->m_isLoggedIn)
+					HttpResponse::JSON([], false);
+
+				if (!isset($_POST['command']))
+					$_POST['command'] = ''; // Like if it was empty
+
+			// Special commands
+
+				if ($_POST['command'] == 'exit') {
+					Session::unset('_terminal');
+					HttpResponse::JSON([], true);
+				}
+			}
+
+			HttpResponse::JSON([], false);
 		}
 
 		public function render(): void {

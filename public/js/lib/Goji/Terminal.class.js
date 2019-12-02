@@ -20,7 +20,10 @@ class Terminal {
 
 		this.m_apiUrl = location.href;
 
+		this.m_isWaitingForResponse = false;
 		this.m_isWaitingForResponseIntervalHandle = null;
+
+		this.m_isPasswordMode = false;
 
 		this.buildTerminalView();
 
@@ -82,16 +85,43 @@ class Terminal {
 						this.m_input.autocapitalize = 'off';
 						this.m_input.spellcheck = 'false';
 						this.m_input.style.visibility = 'hidden';
+						this.m_input.addEventListener('keydown', e => { this.inputKeyEvent(e); }, false);
 							this.m_promptCommand.appendChild(this.m_input);
 
 		this.m_parent.appendChild(docFrag);
 	}
 
+	/**
+	 * @param e
+	 * @private
+	 */
+	inputKeyEvent(e) {
+
+		if (e.key === 'Enter') {
+			this.command();
+			return;
+		}
+
+		if (this.m_isPasswordMode)
+			return;
+
+
+		// TODO: arrow up down history
+	}
+
+	/**
+	 * @private
+	 */
 	switchToCommandInterface() {
+		this.m_isPasswordMode = false;
 		this.m_input.type = 'text';
 	}
 
+	/**
+	 * @private
+	 */
 	switchToPasswordInterface() {
+		this.m_isPasswordMode = true;
 		this.m_input.type = 'password';
 	}
 
@@ -106,6 +136,7 @@ class Terminal {
 
 		this.m_promptInfoWaitingForResponse.textContent = loadingCharsSequence[currentChar];
 
+		this.m_isWaitingForResponse = true;
 		this.m_isWaitingForResponseIntervalHandle = setInterval(() => {
 
 			currentChar++;
@@ -119,6 +150,7 @@ class Terminal {
 
 		this.m_promptInfoWaitingForCommand.style.display = 'none';
 		this.m_promptInfoWaitingForResponse.style.display = 'inline';
+		this.m_input.disabled = true;
 	}
 
 	/**
@@ -128,7 +160,10 @@ class Terminal {
 
 		this.m_promptInfoWaitingForCommand.style.display = 'inline';
 		this.m_promptInfoWaitingForResponse.style.display = 'none';
+		this.m_input.disabled = false;
+		this.m_input.value = '';
 
+		this.m_isWaitingForResponse = false;
 		clearInterval(this.m_isWaitingForResponseIntervalHandle);
 	}
 
@@ -175,6 +210,13 @@ class Terminal {
 	}
 
 	/**
+	 * @private
+	 */
+	clearOutput() {
+		this.m_output.textContent = '';
+	}
+
+	/**
 	 * Initial, set-up request
 	 *
 	 * @private
@@ -216,7 +258,152 @@ class Terminal {
 				this.switchToPasswordInterface();
 			}
 
-			this.printOutput(r.output);
+			if (typeof r.output !== 'undefined' && r.output !== null)
+				this.printOutput(r.output);
+
+			end();
+		};
+
+		this.startWaitingForResponse();
+
+		SimpleRequest.post(
+			this.m_apiUrl,
+			data,
+			load,
+			error,
+			error,
+			null,
+			{ get_json: true }
+		);
+	}
+
+	logIn() {
+		let data = new FormData();
+			data.append('request', 'log-in');
+			data.append('password', this.m_input.value);
+
+		let end = () => {
+			this.stopWaitingForResponse();
+		};
+
+		let error = (r = null) => {
+
+			if (r !== null && typeof r.output !== 'undefined' && r.output !== null)
+				this.printOutput(r.output);
+			else if (typeof r === 'string' || r instanceof String)
+				this.printOutput(r);
+
+			end();
+		};
+
+		let load = (r) => {
+
+			if (r === null || r.status === 'ERROR') {
+				error(r);
+				return;
+			}
+
+			if (typeof r.response === 'undefined' || r.response === null) {
+				error(r);
+				return;
+			}
+
+			if (r.response === 'ready') {
+
+				this.clearOutput();
+
+				this.m_promptInfoUser.textContent = r.user;
+				this.m_promptInfoSeparator.textContent = ':';
+				this.m_promptInfoPath.textContent = r.path;
+
+				this.switchToCommandInterface();
+
+			} else {
+				error(r);
+				return;
+			}
+
+			if (typeof r.output !== 'undefined' && r.output !== null)
+				this.printOutput(r.output);
+
+			end();
+		};
+
+		this.startWaitingForResponse();
+
+		SimpleRequest.post(
+			this.m_apiUrl,
+			data,
+			load,
+			error,
+			error,
+			null,
+			{ get_json: true }
+		);
+	}
+
+	command() {
+
+		if (this.m_isWaitingForResponse)
+			return;
+
+		if (this.m_isPasswordMode) {
+			this.logIn();
+			return;
+		}
+
+		let command = this.m_input.value.trim().toLowerCase();
+
+		if (command === 'clear') {
+			this.clearOutput();
+			// Doesn't need to be started to be stopped
+			// We use it to reset the prompt
+			this.stopWaitingForResponse();
+			return;
+		}
+
+		this.startWaitingForResponse();
+
+		let data = new FormData();
+			data.append('request', 'command');
+			data.append('command', command);
+
+
+		let end = () => {
+			this.stopWaitingForResponse();
+		};
+
+		let error = (r = null) => {
+
+			if (r !== null && typeof r.output !== 'undefined' && r.output !== null)
+				this.printOutput(r.output);
+			else if (typeof r === 'string' || r instanceof String)
+				this.printOutput(r);
+
+			end();
+		};
+
+		let load = (r) => {
+
+			if (r === null || r.status === 'ERROR') {
+				error(r);
+				return;
+			}
+
+			if (typeof r.response === 'undefined' || r.response === null) {
+				error(r);
+				return;
+			}
+
+			switch (r.response) {
+				case 'exit-required':
+					// TODO:
+					return;
+					break;
+			}
+
+			if (typeof r.output !== 'undefined' && r.output !== null)
+				this.printOutput(r.output);
 
 			end();
 		};
