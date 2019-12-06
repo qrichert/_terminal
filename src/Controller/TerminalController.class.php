@@ -76,7 +76,7 @@
 
 			$str .= 'Password: ';
 
-			return nl2br($str);
+			return $str;
 		}
 
 		/**
@@ -337,7 +337,7 @@
 
 					HttpResponse::JSON([
 						'response' => 'ok',
-						'output' => nl2br($output),
+						'output' => $output,
 						'path' => $this->getCurrentDirectoryName()
 					], true);
 				}

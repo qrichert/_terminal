@@ -248,7 +248,7 @@ class Terminal {
 							promptInfo.appendChild(lastCommandText);
 			}
 
-			let commandResult = document.createElement('div');
+			let commandResult = document.createElement('pre');
 				commandResult.innerHTML = output;
 					docFrag.appendChild(commandResult);
 
