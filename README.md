@@ -20,6 +20,6 @@ Interface
 
 <p align="center">
 	<a href="#" target="_blank">
-		<img src="terminal.png" alt="Terminal Window" style="width: 700px;">
+		<img src="terminal.png" alt="Terminal Window" width="700">
 	</a>
 </p>
