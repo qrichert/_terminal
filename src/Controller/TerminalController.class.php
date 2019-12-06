@@ -328,12 +328,11 @@
 						// Replace editors with cat
 						$c = str_replace($editors, 'cat', $c);
 
-						$output[] = Terminal::execute($c);
+						$output[] = htmlspecialchars(Terminal::execute($c));
 					}
 					unset($c);
 
 					$output = implode("", $output); // They already end with newline \n
-
 
 					HttpResponse::JSON([
 						'response' => 'ok',
