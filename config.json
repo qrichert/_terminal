@@ -5,6 +5,8 @@
 	"alias": [
 		["git status", "git st"],
 		["git checkout", "git co"],
-		["git commit", "git ci"]
+		["git commit", "git ci"],
+		["git branch", "git br"],
+		["git log --pretty=oneline --graph --abbrev-commit", "git lg"]
 	]
 }
