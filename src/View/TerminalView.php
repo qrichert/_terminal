@@ -17,7 +17,7 @@
 		<script src="<?= WEBROOT; ?>/js/lib/Goji/Terminal.class.min.js"></script>
 		<script>
 			(function () {
-				new Terminal(document.querySelector('#terminal'))
+				new Terminal(document.querySelector('#terminal'));
 			})();
 		</script>
 	</body>
