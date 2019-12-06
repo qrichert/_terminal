@@ -19,7 +19,7 @@ Interface
 ---------
 
 <p align="center">
-	<a href="#" target="_blank">
-		<img src="terminal.png" alt="Terminal Window" width="700">
-	</a>
+    <a href="#" target="_blank">
+        <img src="terminal.png" alt="Terminal Window" width="760">
+    </a>
 </p>
