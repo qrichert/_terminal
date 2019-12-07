@@ -140,6 +140,13 @@
 		}
 
 		/**
+		 * @return string
+		 */
+		private function getCurrentDirectoryPath(): string {
+			return Session::get('_terminal--current-directory');
+		}
+
+		/**
 		 * Get machine info to display (user, host, etc.)
 		 * @param array $info
 		 * @throws \Exception
@@ -161,9 +168,9 @@
 
 				// If space, use part up until first space
 				// MacBook Pro de Quentin -> MacBook
-				} else if (strpos($host, ' ') !== false) {
+				} else if (mb_strpos($host, ' ') !== false) {
 
-					$host = mb_substr($host, 0, strpos($host, ' '));
+					$host = mb_substr($host, 0, mb_strpos($host, ' '));
 				}
 
 				$host = SwissKnife::ceil_str($host, 20, '...');
@@ -266,6 +273,51 @@
 
 				$c = trim($c);
 				$cmdParts = explode(' ', $c);
+
+				// wildcard *
+				foreach ($cmdParts as &$cmdPart) {
+
+					$wildCardPosition = mb_strpos($cmdPart, '*');
+
+					// Detect if there's a wild card
+					if ($wildCardPosition === false)
+						continue;
+
+					$cmdPartCopy = mb_substr($cmdPart, 0, $wildCardPosition);
+
+					// Now we need to know if it's inside quotation marks or not
+					// We assume that if the number of quotation marks is even -> no, odd -> yes
+					$nbSingleQuotationMarks = mb_substr_count($cmdPartCopy, "'");
+					$nbDoubleQuotationMarks = mb_substr_count($cmdPartCopy, '"');
+
+					// So, if one of them is != 0 && odd -> yes, and we break cause we don't interpret it
+					if (($nbSingleQuotationMarks !== 0 && $nbSingleQuotationMarks % 2 !== 0)
+					    || $nbDoubleQuotationMarks !== 0 && $nbDoubleQuotationMarks % 2 !== 0) {
+						continue;
+					}
+
+					// Here we have a wildcard we need to transform
+					$cmdPart = str_replace(['"', "'"], '', $cmdPart); // Remove quotations
+
+					$fullPath = '';
+					// Now we convert the path into a full path
+
+					// Relative path
+					if (mb_substr($cmdPart, 0, 1) !== '/')
+						$fullPath = SwissKnife::osPathJoin($this->getCurrentDirectoryPath(), $cmdPart);
+					// Absolute path
+					else
+						$fullPath = $cmdPart;
+
+					$files = glob($fullPath);
+
+					if ($files === false || empty($files))
+						continue; // Not found, or directory doesn't even exist
+
+					// Here we found a match ! So we take the first & expand the path into a real full path (without . or ..)
+					$cmdPart = realpath($files[0]);
+				}
+				unset($cmdPart);
 
 				// cd
 				if ($cmdParts[0] == 'cd') {
