@@ -144,7 +144,7 @@
 		 * @param array $info
 		 * @throws \Exception
 		 */
-		private function getSessionInfo(array &$info) {
+		private function getSessionInfo(array &$info): void {
 
 			$username = trim(Terminal::execute('whoami'));
 				$username = SwissKnife::ceil_str($username, 20, '...');
@@ -173,6 +173,181 @@
 			$info['output'] = 'Last login: ' . date('D M j H:i:s');
 		}
 
+/* <EHLO> */
+
+		private function processEhlo(): void {
+
+			$response = [];
+
+			if ($this->m_isLoggedIn) {
+
+				$this->updateDirectory();
+
+				$response['response'] = 'ready';
+				$this->getSessionInfo($response);
+
+			} else {
+
+				$response['response'] = 'require-authentication';
+				$response['output'] = $this->getLoginString();
+			}
+
+			HttpResponse::JSON($response, true);
+		}
+
+/* <LOG IN> */
+
+		private function processLogIn(): void {
+
+			if (!isset($_POST['password']) || $_POST['password'] !== $this->m_config['password']) {
+
+				HttpResponse::JSON([
+					'response' => 'require-authentication',
+					'output' => $this->getErrorMessage('Wrong password.')
+				], false);
+			}
+
+			Session::set('_terminal', true);
+			$this->updateDirectory();
+
+			$response = [];
+
+			$response['response'] = 'ready';
+			$this->getSessionInfo($response);
+
+			HttpResponse::JSON($response, true);
+		}
+
+/* <COMMAND> */
+
+		/**
+		 * No command.
+		 */
+		private function commandEmpty(): void {
+
+			HttpResponse::JSON([
+				'response' => 'ok',
+				'output' => ''
+			], true);
+		}
+
+		/**
+		 * Exit session.
+		 */
+		private function commandExit(): void {
+
+			Session::unset('_terminal');
+			Session::unset('_terminal--current-directory');
+
+			HttpResponse::JSON([
+				'response' => 'exit-required',
+				'output' => $this->getLoginString()
+			], true);
+		}
+
+		/**
+		 * Other commands ('default' function)
+		 *
+		 * @param string $command
+		 * @throws \Exception
+		 */
+		private function command(string $command): void {
+
+			$disallowedCommands = ['ssh', 'telnet'];
+			$disallowedInCombinedCommands = ['clear', 'exit'];
+			$editors = ['vim', 'vi', 'nano', 'emacs'];
+
+			$command = preg_split('#(&&|;)#', $command);
+
+			$output = [];
+
+			// Process commands one by one
+			foreach ($command as &$c) {
+
+				$c = trim($c);
+				$cmdParts = explode(' ', $c);
+
+				// cd
+				if ($cmdParts[0] == 'cd') {
+
+					if (empty($cmdParts[1])) {
+						$output[] = $this->getErrorMessage('cd: No argument provided.');
+						break;
+					}
+
+					if ($cmdParts[1] == '~') {
+						$this->changeDirectory($this->m_config['home']);
+						continue;
+					}
+
+					if (!$this->changeDirectory($cmdParts[1]))
+						$output[] = $this->getErrorMessage("cd: '{$cmdParts[1]}' doesn't exist.");
+
+					continue;
+				}
+
+				// Disallowed commands
+				if (in_array($cmdParts[0], $disallowedCommands)) {
+					$output[] = $this->getErrorMessage("Command '{$cmdParts[0]}' not allowed.");
+					continue;
+				}
+
+				// Commands that must be single
+				if (in_array($cmdParts[0], $disallowedInCombinedCommands)) {
+					$output[] = $this->getWarningMessage("Command '{$cmdParts[0]}' must be used alone.");
+					continue;
+				}
+
+				// Alias
+				foreach ($this->m_config['alias'] as $alias) {
+
+					$firstCommandPart = mb_strpos($c, ' ');
+
+						if ($firstCommandPart === false)
+							$firstCommandPart = mb_strlen($c);
+
+					// Commands must start the same
+					// 'git st' matches, but 'ls git st' doesn't
+					if (mb_substr($c, 0, $firstCommandPart) == mb_substr($alias[1], 0, $firstCommandPart))
+						$c = str_replace($alias[1], $alias[0], $c);
+				}
+
+				// Replace editors with cat
+				$c = str_replace($editors, 'cat', $c);
+
+				$output[] = htmlspecialchars(Terminal::execute($c));
+			}
+			unset($c);
+
+			$output = implode("", $output); // They already end with newline \n
+
+			HttpResponse::JSON([
+				'response' => 'ok',
+				'output' => $output,
+				'path' => $this->getCurrentDirectoryName()
+			], true);
+		}
+
+		private function processCommand(): void {
+
+			if (!$this->m_isLoggedIn)
+				HttpResponse::JSON([], false);
+
+			if (!isset($_POST['command']))
+				$_POST['command'] = ''; // Like if it was empty
+
+		// Special commands
+			// no command
+			if (empty($_POST['command']))
+				$this->commandEmpty();
+			// exit
+			else if ($_POST['command'] == 'exit')
+				$this->commandExit();
+		// Generic
+			else
+				$this->command((string) $_POST['command']);
+		}
+
 		/**
 		 * Treat incoming data.
 		 *
@@ -186,161 +361,12 @@
 			if ($this->m_isLoggedIn)
 				$this->updateDirectory();
 
-/* <EHLO> */
-
-			if ($_POST['request'] == self::EHLO) {
-
-				$response = [];
-
-				if ($this->m_isLoggedIn) {
-
-					$this->updateDirectory();
-
-					$response['response'] = 'ready';
-					$this->getSessionInfo($response);
-
-				} else {
-
-					$response['response'] = 'require-authentication';
-					$response['output'] = $this->getLoginString();
-				}
-
-				HttpResponse::JSON($response, true);
-			}
-
-/* <LOG IN> */
-
-			else if ($_POST['request'] == self::LOG_IN) {
-
-				if (!isset($_POST['password']) || $_POST['password'] !== $this->m_config['password']) {
-
-					HttpResponse::JSON([
-						'response' => 'require-authentication',
-						'output' => $this->getErrorMessage('Wrong password.')
-					], false);
-				}
-
-				Session::set('_terminal', true);
-				$this->updateDirectory();
-
-				$response = [];
-
-				$response['response'] = 'ready';
-				$this->getSessionInfo($response);
-
-				HttpResponse::JSON($response, true);
-			}
-
-/* <COMMAND> */
-
-			else if ($_POST['request'] == self::COMMAND) {
-
-				if (!$this->m_isLoggedIn)
-					HttpResponse::JSON([], false);
-
-				if (!isset($_POST['command']))
-					$_POST['command'] = ''; // Like if it was empty
-
-			// Special commands
-
-				// no command
-				if (empty($_POST['command'])) {
-					HttpResponse::JSON([
-						'response' => 'ok',
-						'output' => ''
-					], true);
-				}
-
-				// exit
-				else if ($_POST['command'] == 'exit') {
-
-					Session::unset('_terminal');
-					Session::unset('_terminal--current-directory');
-
-					HttpResponse::JSON([
-						'response' => 'exit-required',
-						'output' => $this->getLoginString()
-					], true);
-				}
-
-			// Generic
-
-				else {
-					$disallowedCommands = ['ssh', 'telnet'];
-					$disallowedInCombinedCommands = ['clear', 'exit'];
-					$editors = ['vim', 'vi', 'nano', 'emacs'];
-
-					$command = preg_split('#(&&|;)#', $_POST['command']);
-
-					$output = [];
-
-					// Process commands one by one
-					foreach ($command as &$c) {
-
-						$c = trim($c);
-						$cmdParts = explode(' ', $c);
-
-						// cd
-						if ($cmdParts[0] == 'cd') {
-
-							if (empty($cmdParts[1])) {
-								$output[] = $this->getErrorMessage('cd: No argument provided.');
-								break;
-							}
-
-							if ($cmdParts[1] == '~') {
-								$this->changeDirectory($this->m_config['home']);
-								continue;
-							}
-
-							if (!$this->changeDirectory($cmdParts[1]))
-								$output[] = $this->getErrorMessage("cd: '{$cmdParts[1]}' doesn't exist.");
-
-							continue;
-						}
-
-						// Disallowed commands
-						if (in_array($cmdParts[0], $disallowedCommands)) {
-							$output[] = $this->getErrorMessage("Command '{$cmdParts[0]}' not allowed.");
-							continue;
-						}
-
-						// Commands that must be single
-						if (in_array($cmdParts[0], $disallowedInCombinedCommands)) {
-							$output[] = $this->getWarningMessage("Command '{$cmdParts[0]}' must be used alone.");
-							continue;
-						}
-
-						// Alias
-						foreach ($this->m_config['alias'] as $alias) {
-
-							$firstCommandPart = mb_strpos($c, ' ');
-
-								if ($firstCommandPart === false)
-									$firstCommandPart = mb_strlen($c);
-
-							// Commands must start the same
-							// 'git st' matches, but 'ls git st' doesn't
-							if (mb_substr($c, 0, $firstCommandPart) == mb_substr($alias[1], 0, $firstCommandPart))
-								$c = str_replace($alias[1], $alias[0], $c);
-						}
-
-						// Replace editors with cat
-						$c = str_replace($editors, 'cat', $c);
-
-						$output[] = htmlspecialchars(Terminal::execute($c));
-					}
-					unset($c);
-
-					$output = implode("", $output); // They already end with newline \n
-
-					HttpResponse::JSON([
-						'response' => 'ok',
-						'output' => $output,
-						'path' => $this->getCurrentDirectoryName()
-					], true);
-				}
-			}
+			if ($_POST['request'] == self::EHLO)
+				$this->processEhlo();
+			else if ($_POST['request'] == self::LOG_IN)
+				$this->processLogIn();
+			else if ($_POST['request'] == self::COMMAND)
+				$this->processCommand();
 
 			HttpResponse::JSON([], false);
 		}
