@@ -14,7 +14,7 @@
 		<div id="terminal" data-action="<?= WEBROOT; ?>/xhr"></div>
 
 		<script src="<?= WEBROOT; ?>/js/lib/Goji/SimpleRequest.class.min.js"></script>
-		<script src="<?= WEBROOT; ?>/js/lib/Goji/Terminal.class.js"></script>
+		<script src="<?= WEBROOT; ?>/js/lib/Goji/Terminal.class.min.js"></script>
 		<script>
 			(function () {
 				new Terminal(document.querySelector('#terminal'));
