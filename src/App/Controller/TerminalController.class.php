@@ -264,7 +264,7 @@
 			$disallowedInCombinedCommands = ['clear', 'exit'];
 			$editors = ['vim', 'vi', 'nano', 'emacs'];
 
-			$command = preg_split('#(&&|;)#', $command);
+			$command = preg_split('#&&|;#', $command);
 
 			$output = [];
 
@@ -427,6 +427,6 @@
 			if ($this->m_isAjaxRequest)
 				$this->processRequest();
 			else
-				require_once('../src/View/TerminalView.php');
+				require_once('../src/App/View/TerminalView.php');
 		}
 	}
