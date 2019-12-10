@@ -103,8 +103,8 @@ class Terminal {
 	}
 
 	/**
-	 * @param e
 	 * @private
+	 * @param e
 	 */
 	inputKeyEvent(e) {
 
@@ -124,6 +124,23 @@ class Terminal {
 		}
 	}
 
+	/**
+	 * @private
+	 * @param command
+	 */
+	commandHistoryAppend(command) {
+
+		if (command === this.m_commandHistory[this.m_commandHistoryCount - 1])
+			return;
+
+		this.m_commandHistory.push(command);
+		this.m_commandHistoryCount = this.m_commandHistory.length;
+		this.m_commandHistoryIndex = this.m_commandHistoryCount; // last (will be --; before display)
+	}
+
+	/**
+	 * @private
+	 */
 	commandHistoryPrevious() {
 
 		if (this.m_isPasswordMode || this.m_commandHistoryCount === 0)
@@ -138,6 +155,9 @@ class Terminal {
 		this.m_input.value = this.m_commandHistory[this.m_commandHistoryIndex];
 	}
 
+	/**
+	 * @private
+	 */
 	commandHistoryNext() {
 
 		if (this.m_isPasswordMode || this.m_commandHistoryCount === 0)
@@ -214,9 +234,9 @@ class Terminal {
 	}
 
 	/**
+	 * @private
 	 * @param {String} output
 	 * @param {String|null} lastCommand
-	 * @private
 	 */
 	printOutput(output, lastCommand = null) {
 
@@ -263,9 +283,9 @@ class Terminal {
 	}
 
 	/**
+	 * @private
 	 * @param {String} user
 	 * @param {String} path
-	 * @private
 	 */
 	setPromptInfo(user, path) {
 		this.m_promptInfoUser.textContent = user;
@@ -417,9 +437,7 @@ class Terminal {
 
 		let command = this.m_input.value.trim();
 
-		this.m_commandHistory.push(command);
-		this.m_commandHistoryCount = this.m_commandHistory.length;
-		this.m_commandHistoryIndex = this.m_commandHistoryCount; // last (will be --; before display)
+		this.commandHistoryAppend(command);
 
 		if (command === 'clear') {
 			this.clearOutput();
