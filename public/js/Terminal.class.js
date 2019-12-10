@@ -212,7 +212,7 @@ class Terminal {
 
 			this.m_promptInfoWaitingForResponse.textContent = loadingCharsSequence[currentChar];
 
-		}, 250);
+		}, 135);
 
 		this.m_promptInfoWaitingForCommand.style.display = 'none';
 		this.m_promptInfoWaitingForResponse.style.display = 'inline';
@@ -436,8 +436,7 @@ class Terminal {
 		}
 
 		let command = this.m_input.value.trim();
-
-		this.commandHistoryAppend(command);
+			this.commandHistoryAppend(command);
 
 		if (command === 'clear') {
 			this.clearOutput();
@@ -447,12 +446,9 @@ class Terminal {
 			return;
 		}
 
-		this.startWaitingForResponse();
-
 		let data = new FormData();
 			data.append('request', 'command');
 			data.append('command', command);
-
 
 		let end = () => {
 			this.stopWaitingForResponse();

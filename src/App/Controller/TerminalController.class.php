@@ -264,7 +264,7 @@
 			$disallowedInCombinedCommands = ['clear', 'exit'];
 			$editors = ['vim', 'vi', 'nano', 'emacs'];
 
-			$command = preg_split('#(&&|;)#', $command);
+			$command = preg_split('#&&|;#', $command);
 
 			$output = [];
 
