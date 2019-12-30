@@ -48,6 +48,8 @@ class Terminal {
 
 		this.buildTerminalView();
 
+		this.addListeners();
+
 		this.ehlo();
 
 		this.m_input.focus();
@@ -139,6 +141,11 @@ class Terminal {
 		this.m_parent.appendChild(docFrag);
 	}
 
+	addListeners() {
+		window.addEventListener('load', () => { this.restoreCommandHistory(); }, false);
+		window.addEventListener('unload', () => { this.saveCommandHistory(); }, false);
+	}
+
 	/**
 	 * @private
 	 * @param e
@@ -162,16 +169,57 @@ class Terminal {
 	}
 
 	/**
+	 * Save command history to local storage
+	 *
+	 * @private
+	 */
+	saveCommandHistory() {
+		localStorage.setItem('_terminal__command-history', JSON.stringify(this.m_commandHistory));
+		return 'save';
+	}
+
+	/**
+	 * Restore command history from local storage
+	 *
+	 * @private
+	 */
+	restoreCommandHistory() {
+		this.m_commandHistory = [];
+
+		try {
+			let history = JSON.parse(localStorage.getItem('_terminal__command-history'));
+
+			if (Array.isArray(history))
+				this.m_commandHistory = history;
+		} catch (e) {}
+
+		this.m_commandHistoryCount = this.m_commandHistory.length;
+		this.m_commandHistoryIndex = this.m_commandHistoryCount;
+	}
+
+	/**
 	 * @private
 	 * @param command
 	 */
 	commandHistoryAppend(command) {
 
-		if (command === this.m_commandHistory[this.m_commandHistoryCount - 1])
+		if (command === this.m_commandHistory[this.m_commandHistoryCount - 1]) {
+			this.m_commandHistoryIndex = this.m_commandHistoryCount;
 			return;
+		}
 
 		this.m_commandHistory.push(command);
 		this.m_commandHistoryCount = this.m_commandHistory.length;
+
+		const MAX_HISTORY_ELEMENTS = 100;
+
+		// Cap nb elements in history at MAX
+		if (this.m_commandHistoryCount > MAX_HISTORY_ELEMENTS) {
+			let tooMany = this.m_commandHistoryCount - MAX_HISTORY_ELEMENTS;
+			this.m_commandHistoryCount = MAX_HISTORY_ELEMENTS;
+			this.m_commandHistory.splice(0, tooMany);
+		}
+
 		this.m_commandHistoryIndex = this.m_commandHistoryCount; // last (will be --; before display)
 	}
 
