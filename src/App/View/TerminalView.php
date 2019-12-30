@@ -7,7 +7,7 @@
 		<link rel="stylesheet" type="text/css" href="<?= WEBROOT; ?>/css/root.css">
 		<link rel="stylesheet" type="text/css" href="<?= WEBROOT; ?>/css/reset.css">
 		<link rel="stylesheet" type="text/css" href="<?= WEBROOT; ?>/css/main.css">
-		<link rel="stylesheet" type="text/css" href="<?= WEBROOT; ?>/css/lib/Goji/terminal.css">
+		<link rel="stylesheet" type="text/css" href="<?= WEBROOT; ?>/css/terminal.css">
 		<title>Terminal</title>
 	</head>
 	<body>
