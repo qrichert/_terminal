@@ -392,6 +392,11 @@
 					$content = '';
 					$newFile = true;
 
+					if (is_dir($cmdParts[1])) {
+						$output[] = $this->getErrorMessage("'{$cmdParts[1]}' is a directory.");
+						continue;
+					}
+
 					// File exists, read it
 					if (is_file($cmdParts[1])) {
 						$content = file_get_contents($cmdParts[1]);
