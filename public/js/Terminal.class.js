@@ -25,18 +25,33 @@ class Terminal {
 				this.m_promptCommand = null;
 					this.m_input = null;
 
+		this.m_editor = null;
+
+			this.m_editorTextArea = null;
+			this.m_editorInterface = null;
+				this.m_editorFilename = null;
+				this.m_editorCancel = null;
+				this.m_editorSave = null;
+				this.m_editorSaveWaitingForResponse = null;
+
 		this.m_apiUrl = this.m_parent.dataset.action || location.href;
 
 		this.m_isWaitingForResponse = false;
 		this.m_isWaitingForResponseIntervalHandle = null;
 
-		this.m_isPasswordMode = false;
+		this.Mode = { COMMAND: 'command', EDITOR: 'editor', PASSWORD: 'password'};
+
+		this.m_mode = this.Mode.COMMAND;
+
+		this.m_editorCurrentFileData = null;
 
 		this.m_commandHistory = [];
 		this.m_commandHistoryCount = 0;
 		this.m_commandHistoryIndex = 0;
 
 		this.buildTerminalView();
+
+		this.addListeners();
 
 		this.ehlo();
 
@@ -99,7 +114,48 @@ class Terminal {
 						this.m_input.addEventListener('keydown', e => { this.inputKeyEvent(e); }, false);
 							this.m_promptCommand.appendChild(this.m_input);
 
+			this.m_editor = document.createElement('div');
+				this.m_editor.classList.add('terminal__editor');
+					docFrag.appendChild(this.m_editor);
+
+				this.m_editorTextArea = document.createElement('textarea');
+					this.m_editorTextArea.classList.add('terminal__editor--textarea');
+						this.m_editor.appendChild(this.m_editorTextArea);
+
+				this.m_editorInterface = document.createElement('div');
+					this.m_editorInterface.classList.add('terminal__editor--interface');
+					this.m_editor.appendChild(this.m_editorInterface);
+
+					this.m_editorFilename = document.createElement('p');
+						this.m_editorFilename.classList.add('filename');
+						this.m_editorFilename.textContent = '';
+						this.m_editorInterface.appendChild(this.m_editorFilename);
+
+					this.m_editorCancel = document.createElement('a');
+						this.m_editorCancel.classList.add('cancel');
+						this.m_editorCancel.textContent = '[Cancel]';
+							this.m_editorInterface.appendChild(this.m_editorCancel);
+
+					this.m_editorSave = document.createElement('a');
+						this.m_editorSave.classList.add('save');
+							this.m_editorInterface.appendChild(this.m_editorSave);
+
+						this.m_editorSave.appendChild(document.createTextNode('[Save'));
+
+						this.m_editorSaveWaitingForResponse = document.createElement('span');
+							this.m_editorSaveWaitingForResponse.textContent = '';
+								this.m_editorSave.appendChild(this.m_editorSaveWaitingForResponse);
+
+						this.m_editorSave.appendChild(document.createTextNode(']'));
+
 		this.m_parent.appendChild(docFrag);
+	}
+
+	addListeners() {
+		window.addEventListener('load', () => { this.restoreCommandHistory(); }, false);
+		window.addEventListener('unload', () => { this.saveCommandHistory(); }, false);
+		this.m_editorCancel.addEventListener('click', e => { e.preventDefault(); this.editorCancel(); }, false);
+		this.m_editorSave.addEventListener('click', e => { e.preventDefault(); this.editorSave(); }, false);
 	}
 
 	/**
@@ -125,16 +181,56 @@ class Terminal {
 	}
 
 	/**
+	 * Save command history to local storage
+	 *
+	 * @private
+	 */
+	saveCommandHistory() {
+		localStorage.setItem('_terminal--command-history', JSON.stringify(this.m_commandHistory));
+	}
+
+	/**
+	 * Restore command history from local storage
+	 *
+	 * @private
+	 */
+	restoreCommandHistory() {
+		this.m_commandHistory = [];
+
+		try {
+			let history = JSON.parse(localStorage.getItem('_terminal--command-history'));
+
+			if (Array.isArray(history))
+				this.m_commandHistory = history;
+		} catch (e) {}
+
+		this.m_commandHistoryCount = this.m_commandHistory.length;
+		this.m_commandHistoryIndex = this.m_commandHistoryCount;
+	}
+
+	/**
 	 * @private
 	 * @param command
 	 */
 	commandHistoryAppend(command) {
 
-		if (command === this.m_commandHistory[this.m_commandHistoryCount - 1])
+		if (command === '' || command === this.m_commandHistory[this.m_commandHistoryCount - 1]) {
+			this.m_commandHistoryIndex = this.m_commandHistoryCount;
 			return;
+		}
 
 		this.m_commandHistory.push(command);
 		this.m_commandHistoryCount = this.m_commandHistory.length;
+
+		const MAX_HISTORY_ELEMENTS = 100;
+
+		// Cap nb elements in history at MAX
+		if (this.m_commandHistoryCount > MAX_HISTORY_ELEMENTS) {
+			let tooMany = this.m_commandHistoryCount - MAX_HISTORY_ELEMENTS;
+			this.m_commandHistoryCount = MAX_HISTORY_ELEMENTS;
+			this.m_commandHistory.splice(0, tooMany);
+		}
+
 		this.m_commandHistoryIndex = this.m_commandHistoryCount; // last (will be --; before display)
 	}
 
@@ -143,7 +239,7 @@ class Terminal {
 	 */
 	commandHistoryPrevious() {
 
-		if (this.m_isPasswordMode || this.m_commandHistoryCount === 0)
+		if (this.m_mode !== this.Mode.COMMAND || this.m_commandHistoryCount === 0)
 			return;
 
 		this.m_commandHistoryIndex--;
@@ -160,7 +256,7 @@ class Terminal {
 	 */
 	commandHistoryNext() {
 
-		if (this.m_isPasswordMode || this.m_commandHistoryCount === 0)
+		if (this.m_mode !== this.Mode.COMMAND || this.m_commandHistoryCount === 0)
 			return;
 
 		this.m_commandHistoryIndex++;
@@ -177,18 +273,28 @@ class Terminal {
 	 * @private
 	 */
 	switchToCommandInterface() {
-		this.m_isPasswordMode = false;
+		this.m_mode = this.Mode.COMMAND;
 		this.m_input.type = 'text';
 		this.m_input.name = 'terminal[command]';
+		this.m_editor.classList.remove('shown');
+		this.m_input.focus();
+	}
+
+	switchToEditorInterface() {
+		this.m_mode = this.Mode.EDITOR;
+		this.m_editor.classList.add('shown');
+		this.m_editorTextArea.focus();
 	}
 
 	/**
 	 * @private
 	 */
 	switchToPasswordInterface() {
-		this.m_isPasswordMode = true;
+		this.m_mode = this.Mode.PASSWORD;
 		this.m_input.type = 'password';
 		this.m_input.name = 'terminal[password]';
+		this.m_editor.classList.remove('shown');
+		this.m_input.focus();
 	}
 
 	/**
@@ -201,6 +307,7 @@ class Terminal {
 		let nbChars = loadingCharsSequence.length;
 
 		this.m_promptInfoWaitingForResponse.textContent = loadingCharsSequence[currentChar];
+		this.m_editorSaveWaitingForResponse.textContent = loadingCharsSequence[currentChar]; // Editor
 
 		this.m_isWaitingForResponse = true;
 		this.m_isWaitingForResponseIntervalHandle = setInterval(() => {
@@ -211,12 +318,15 @@ class Terminal {
 				currentChar = 0;
 
 			this.m_promptInfoWaitingForResponse.textContent = loadingCharsSequence[currentChar];
+			this.m_editorSaveWaitingForResponse.textContent = loadingCharsSequence[currentChar]; // Editor
 
 		}, 135);
 
 		this.m_promptInfoWaitingForCommand.style.display = 'none';
 		this.m_promptInfoWaitingForResponse.style.display = 'inline';
 		this.m_input.disabled = true;
+		this.m_editorTextArea.disabled = true; // Editor
+		this.m_editorCancel.style.visibility = 'hidden'; // Editor
 	}
 
 	/**
@@ -228,6 +338,9 @@ class Terminal {
 		this.m_promptInfoWaitingForResponse.style.display = 'none';
 		this.m_input.disabled = false;
 		this.m_input.value = '';
+		this.m_editorSaveWaitingForResponse.textContent = ''; // Editor
+		this.m_editorTextArea.disabled = false; // Editor
+		this.m_editorCancel.style.visibility = null; // Editor
 
 		this.m_isWaitingForResponse = false;
 		clearInterval(this.m_isWaitingForResponseIntervalHandle);
@@ -430,7 +543,7 @@ class Terminal {
 		if (this.m_isWaitingForResponse)
 			return;
 
-		if (this.m_isPasswordMode) {
+		if (this.m_mode === this.Mode.PASSWORD) {
 			this.logIn();
 			return;
 		}
@@ -483,10 +596,103 @@ class Terminal {
 			if (typeof r.path !== 'undefined' && r.path !== null)
 				this.m_promptInfoPath.textContent = r.path;
 
-			if (r.response === 'exit-required') { // User is logged out, reload to reset terminal
+			if (r.response === 'require-exit') { // User is logged out, reload to reset terminal
+
 				this.clearPromptInfo();
 				this.switchToPasswordInterface();
+
+			} else if (r.response === 'require-editor') {
+
+				this.m_editorCurrentFileData = {
+					file: '',
+					filename: '',
+					new_file: false,
+					content: ''
+				};
+
+				if (typeof r.file !== 'undefined' && r.file !== null)
+					this.m_editorCurrentFileData.file = r.file;
+
+				if (typeof r.filename !== 'undefined' && r.filename !== null)
+					this.m_editorCurrentFileData.filename = r.filename;
+
+				if (typeof r.new_file === 'boolean')
+					this.m_editorCurrentFileData.new_file = r.new_file;
+
+				if (typeof r.content !== 'undefined' && r.content !== null)
+					this.m_editorCurrentFileData.content = r.content;
+
+				this.m_editorTextArea.value = this.m_editorCurrentFileData.content;
+				this.m_editorFilename.textContent = '"' + this.m_editorCurrentFileData.filename + '"' +
+				                                    (this.m_editorCurrentFileData.new_file ? ' [New File]' : '');
+
+				this.switchToEditorInterface();
 			}
+
+			end();
+		};
+
+		this.startWaitingForResponse();
+
+		SimpleRequest.post(
+			this.m_apiUrl,
+			data,
+			load,
+			error,
+			error,
+			null,
+			{ get_json: true }
+		);
+	}
+
+	/**
+	 * @private
+	 */
+	editorCancel() {
+		this.switchToCommandInterface();
+		this.m_editorCurrentFileData = null;
+	}
+
+	/**
+	 * @private
+	 */
+	editorSave() {
+
+		if (this.m_isWaitingForResponse)
+			return;
+
+		if (this.m_mode !== this.Mode.EDITOR)
+			return;
+
+		let data = new FormData();
+			data.append('request', 'save-file');
+			data.append('file', this.m_editorCurrentFileData.file);
+			data.append('content', this.m_editorTextArea.value);
+
+		let end = () => {
+			this.stopWaitingForResponse();
+		};
+
+		let error = (r = null) => {
+			alert('[Error] Could not save file.');
+			end();
+		};
+
+		let load = (r) => {
+
+			if (r === null || r.status === 'ERROR') {
+				error(r);
+				return;
+			}
+
+			if (typeof r.response === 'undefined' || r.response === null) {
+				error(r);
+				return;
+			}
+
+			this.switchToCommandInterface();
+			this.m_editorCurrentFileData = null;
+			this.m_editorTextArea.value = '';
 
 			end();
 		};
