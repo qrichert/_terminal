@@ -38,15 +38,13 @@ class Terminal {
 		this.m_isWaitingForResponse = false;
 		this.m_isWaitingForResponseIntervalHandle = null;
 
-		this.m_isPasswordMode = false;
+		this.Mode = { COMMAND: 'command', EDITOR: 'editor', PASSWORD: 'password'};
+
+		this.m_mode = this.Mode.COMMAND;
 
 		this.m_commandHistory = [];
 		this.m_commandHistoryCount = 0;
 		this.m_commandHistoryIndex = 0;
-
-		this.Mode = { COMMAND: 'command', EDIT: 'edit'};
-
-		this.m_mode = this.Mode.COMMAND;
 
 		this.buildTerminalView();
 
@@ -182,7 +180,7 @@ class Terminal {
 	 */
 	commandHistoryPrevious() {
 
-		if (this.m_isPasswordMode || this.m_commandHistoryCount === 0)
+		if (this.m_mode !== this.Mode.COMMAND || this.m_commandHistoryCount === 0)
 			return;
 
 		this.m_commandHistoryIndex--;
@@ -199,7 +197,7 @@ class Terminal {
 	 */
 	commandHistoryNext() {
 
-		if (this.m_isPasswordMode || this.m_commandHistoryCount === 0)
+		if (this.m_mode !== this.Mode.COMMAND || this.m_commandHistoryCount === 0)
 			return;
 
 		this.m_commandHistoryIndex++;
@@ -216,16 +214,20 @@ class Terminal {
 	 * @private
 	 */
 	switchToCommandInterface() {
-		this.m_isPasswordMode = false;
+		this.m_mode = this.Mode.COMMAND;
 		this.m_input.type = 'text';
 		this.m_input.name = 'terminal[command]';
+	}
+
+	switchToEditorInterface() {
+		this.m_mode = this.Mode.EDITOR;
 	}
 
 	/**
 	 * @private
 	 */
 	switchToPasswordInterface() {
-		this.m_isPasswordMode = true;
+		this.m_mode = this.Mode.PASSWORD;
 		this.m_input.type = 'password';
 		this.m_input.name = 'terminal[password]';
 	}
@@ -469,7 +471,7 @@ class Terminal {
 		if (this.m_isWaitingForResponse)
 			return;
 
-		if (this.m_isPasswordMode) {
+		if (this.m_mode === this.Mode.PASSWORD) {
 			this.logIn();
 			return;
 		}
