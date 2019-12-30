@@ -96,11 +96,17 @@
 		}
 
 		private function updateDirectory(): void {
-			// cd
+
+			$success = false;
+
 			if (Session::get('_terminal--current-directory') !== null)
-				$this->changeDirectory(Session::get('_terminal--current-directory'));
+				$success = $this->changeDirectory(Session::get('_terminal--current-directory'));
 			else
-				$this->changeDirectory($this->m_config['home']);
+				$success = $this->changeDirectory($this->m_config['home']);
+
+			// If requested dirs don't exist, use current dir instead
+			if (!$success)
+				$this->changeDirectory(getcwd());
 		}
 
 		/**
@@ -124,26 +130,40 @@
 		}
 
 		/**
+		 * Current directory (full path)
+		 * @return string
+		 */
+		private function getCurrentDirectoryPath(): string {
+
+			$currentDir = Session::get('_terminal--current-directory');
+
+			// Set current dir if not yet set
+			if ($currentDir === null) {
+				$currentDir = getcwd();
+				$this->changeDirectory($currentDir);
+			}
+
+			return $currentDir;
+		}
+
+		/**
+		 * Current directory (name only, for display)
+		 *
 		 * @return string
 		 */
 		private function getCurrentDirectoryName(): string  {
 
-			if (Session::get('_terminal--current-directory') == $this->m_config['home'])
+			$dirName = $this->getCurrentDirectoryPath();
+
+			if ($dirName == $this->m_config['home'])
 				return '~';
 
-			$dirName = basename(Session::get('_terminal--current-directory'));
+			$dirName = basename($dirName);
 
 			if (empty($dirName))
 				return '/';
 			else
 				return $dirName;
-		}
-
-		/**
-		 * @return string
-		 */
-		private function getCurrentDirectoryPath(): string {
-			return Session::get('_terminal--current-directory');
 		}
 
 		/**
@@ -247,7 +267,7 @@
 			Session::unset('_terminal--current-directory');
 
 			HttpResponse::JSON([
-				'response' => 'exit-required',
+				'response' => 'require-exit',
 				'output' => $this->getLoginString()
 			], true);
 		}
@@ -260,11 +280,13 @@
 		 */
 		private function command(string $command): void {
 
+			$editors = ['vim', 'vi', 'nano', 'emacs'];
 			$disallowedCommands = ['ssh', 'telnet'];
 			$disallowedInCombinedCommands = ['clear', 'exit'];
-			$editors = ['vim', 'vi', 'nano', 'emacs'];
+				$disallowedInCombinedCommands = array_merge($disallowedInCombinedCommands, $editors);
 
 			$command = preg_split('#&&|;#', $command);
+			$nbCommands = count($command);
 
 			$output = [];
 
@@ -345,7 +367,7 @@
 				}
 
 				// Commands that must be single
-				if (in_array($cmdParts[0], $disallowedInCombinedCommands)) {
+				if ($nbCommands > 1 && in_array($cmdParts[0], $disallowedInCombinedCommands)) {
 					$output[] = $this->getWarningMessage("Command '{$cmdParts[0]}' must be used alone.");
 					continue;
 				}
@@ -364,8 +386,32 @@
 						$c = str_replace($alias[1], $alias[0], $c);
 				}
 
-				// Replace editors with cat
-				$c = str_replace($editors, 'cat', $c);
+				// Editor
+				if (in_array($cmdParts[0], $editors)) {
+
+					$content = '';
+					$newFile = true;
+
+					// File exists, read it
+					if (is_file($cmdParts[1])) {
+						$content = file_get_contents($cmdParts[1]);
+						$newFile = false;
+					}
+
+					// If read failed -> error
+					if ($content === false) {
+						$output[] = $this->getErrorMessage("Cannot read file '{$cmdParts[1]}'. Check permissions.");
+						continue;
+					}
+
+					HttpResponse::JSON([
+						'response' => 'require-editor',
+						'file' => $cmdParts[1],
+						'filename' => basename($cmdParts[1]),
+						'new_file' => $newFile,
+						'content' => $content
+					], true);
+				}
 
 				$output[] = htmlspecialchars(Terminal::execute($c));
 			}
@@ -388,6 +434,8 @@
 			if (!isset($_POST['command']))
 				$_POST['command'] = ''; // Like if it was empty
 
+			$_POST['command'] = trim((string) $_POST['command']);
+
 		// Special commands
 			// no command
 			if (empty($_POST['command']))
@@ -397,7 +445,7 @@
 				$this->commandExit();
 		// Generic
 			else
-				$this->command((string) $_POST['command']);
+				$this->command($_POST['command']);
 		}
 
 		/**

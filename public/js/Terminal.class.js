@@ -44,6 +44,10 @@ class Terminal {
 		this.m_commandHistoryCount = 0;
 		this.m_commandHistoryIndex = 0;
 
+		this.Mode = { COMMAND: 'command', EDIT: 'edit'};
+
+		this.m_mode = this.Mode.COMMAND;
+
 		this.buildTerminalView();
 
 		this.ehlo();
@@ -518,7 +522,7 @@ class Terminal {
 			if (typeof r.path !== 'undefined' && r.path !== null)
 				this.m_promptInfoPath.textContent = r.path;
 
-			if (r.response === 'exit-required') { // User is logged out, reload to reset terminal
+			if (r.response === 'require-exit') { // User is logged out, reload to reset terminal
 				this.clearPromptInfo();
 				this.switchToPasswordInterface();
 			}
