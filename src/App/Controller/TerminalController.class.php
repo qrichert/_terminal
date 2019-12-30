@@ -471,7 +471,9 @@
 				mkdir($dir, 0777, true);
 
 			if (@file_put_contents($file, (string) $_POST['content']))
-				HttpResponse::JSON([], true);
+				HttpResponse::JSON([
+					'response' => 'ok'
+				], true);
 			else
 				HttpResponse::JSON([], false);
 		}

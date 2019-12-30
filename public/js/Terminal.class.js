@@ -32,6 +32,7 @@ class Terminal {
 				this.m_editorFilename = null;
 				this.m_editorCancel = null;
 				this.m_editorSave = null;
+				this.m_editorSaveWaitingForResponse = null;
 
 		this.m_apiUrl = this.m_parent.dataset.action || location.href;
 
@@ -137,8 +138,15 @@ class Terminal {
 
 					this.m_editorSave = document.createElement('a');
 						this.m_editorSave.classList.add('save');
-						this.m_editorSave.textContent = '[Save]';
 							this.m_editorInterface.appendChild(this.m_editorSave);
+
+						this.m_editorSave.appendChild(document.createTextNode('[Save'));
+
+						this.m_editorSaveWaitingForResponse = document.createElement('span');
+							this.m_editorSaveWaitingForResponse.textContent = '';
+								this.m_editorSave.appendChild(this.m_editorSaveWaitingForResponse);
+
+						this.m_editorSave.appendChild(document.createTextNode(']'));
 
 		this.m_parent.appendChild(docFrag);
 	}
@@ -206,7 +214,7 @@ class Terminal {
 	 */
 	commandHistoryAppend(command) {
 
-		if (command === this.m_commandHistory[this.m_commandHistoryCount - 1]) {
+		if (command === '' || command === this.m_commandHistory[this.m_commandHistoryCount - 1]) {
 			this.m_commandHistoryIndex = this.m_commandHistoryCount;
 			return;
 		}
@@ -299,6 +307,7 @@ class Terminal {
 		let nbChars = loadingCharsSequence.length;
 
 		this.m_promptInfoWaitingForResponse.textContent = loadingCharsSequence[currentChar];
+		this.m_editorSaveWaitingForResponse.textContent = loadingCharsSequence[currentChar]; // Editor
 
 		this.m_isWaitingForResponse = true;
 		this.m_isWaitingForResponseIntervalHandle = setInterval(() => {
@@ -309,12 +318,15 @@ class Terminal {
 				currentChar = 0;
 
 			this.m_promptInfoWaitingForResponse.textContent = loadingCharsSequence[currentChar];
+			this.m_editorSaveWaitingForResponse.textContent = loadingCharsSequence[currentChar]; // Editor
 
 		}, 135);
 
 		this.m_promptInfoWaitingForCommand.style.display = 'none';
 		this.m_promptInfoWaitingForResponse.style.display = 'inline';
 		this.m_input.disabled = true;
+		this.m_editorTextArea.disabled = true; // Editor
+		this.m_editorCancel.style.visibility = 'hidden'; // Editor
 	}
 
 	/**
@@ -326,6 +338,9 @@ class Terminal {
 		this.m_promptInfoWaitingForResponse.style.display = 'none';
 		this.m_input.disabled = false;
 		this.m_input.value = '';
+		this.m_editorSaveWaitingForResponse.textContent = ''; // Editor
+		this.m_editorTextArea.disabled = false; // Editor
+		this.m_editorCancel.style.visibility = null; // Editor
 
 		this.m_isWaitingForResponse = false;
 		clearInterval(this.m_isWaitingForResponseIntervalHandle);
@@ -607,8 +622,6 @@ class Terminal {
 				if (typeof r.content !== 'undefined' && r.content !== null)
 					this.m_editorCurrentFileData.content = r.content;
 
-				console.log(this.m_editorCurrentFileData);
-
 				this.m_editorTextArea.value = this.m_editorCurrentFileData.content;
 				this.m_editorFilename.textContent = '"' + this.m_editorCurrentFileData.filename + '"' +
 				                                    (this.m_editorCurrentFileData.new_file ? ' [New File]' : '');
@@ -677,6 +690,10 @@ class Terminal {
 				return;
 			}
 
+			this.switchToCommandInterface();
+			this.m_editorCurrentFileData = null;
+			this.m_editorTextArea.value = '';
+
 			end();
 		};
 
@@ -691,9 +708,5 @@ class Terminal {
 			null,
 			{ get_json: true }
 		);
-
-		this.switchToCommandInterface();
-		this.m_editorCurrentFileData = null;
-		this.m_editorTextArea.value = '';
 	}
 }
