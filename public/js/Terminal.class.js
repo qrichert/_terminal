@@ -25,6 +25,14 @@ class Terminal {
 				this.m_promptCommand = null;
 					this.m_input = null;
 
+		this.m_editor = null;
+
+			this.m_editorTextArea = null;
+			this.m_editorInterface = null;
+				this.m_editorFilename = null;
+				this.m_editorSave = null;
+				this.m_editorCancel = null;
+
 		this.m_apiUrl = this.m_parent.dataset.action || location.href;
 
 		this.m_isWaitingForResponse = false;
@@ -98,6 +106,33 @@ class Terminal {
 						this.m_input.style.visibility = 'hidden';
 						this.m_input.addEventListener('keydown', e => { this.inputKeyEvent(e); }, false);
 							this.m_promptCommand.appendChild(this.m_input);
+
+			this.m_editor = document.createElement('div');
+				this.m_editor.classList.add('terminal__editor');
+					docFrag.appendChild(this.m_editor);
+
+				this.m_editorTextArea = document.createElement('textarea');
+					this.m_editorTextArea.classList.add('terminal__editor--textarea');
+						this.m_editor.appendChild(this.m_editorTextArea);
+
+				this.m_editorInterface = document.createElement('div');
+					this.m_editorInterface.classList.add('terminal__editor--interface');
+					this.m_editor.appendChild(this.m_editorInterface);
+
+					this.m_editorFilename = document.createElement('p');
+						this.m_editorFilename.classList.add('filename');
+						this.m_editorFilename.textContent = '';
+						this.m_editorInterface.appendChild(this.m_editorFilename);
+
+					this.m_editorSave = document.createElement('a');
+						this.m_editorSave.classList.add('save');
+						this.m_editorSave.textContent = '[Save]';
+							this.m_editorInterface.appendChild(this.m_editorSave);
+
+					this.m_editorCancel = document.createElement('a');
+						this.m_editorCancel.classList.add('cancel');
+						this.m_editorCancel.textContent = '[Cancel]';
+							this.m_editorInterface.appendChild(this.m_editorCancel);
 
 		this.m_parent.appendChild(docFrag);
 	}
