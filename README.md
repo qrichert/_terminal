@@ -29,3 +29,9 @@ Interface
         <img src="terminal.png" alt="Terminal Window" width="848">
     </a>
 </p>
+
+<p align="center">
+    <a href="#" target="_blank">
+        <img src="terminal__editor.png" alt="Terminal Window" width="848">
+    </a>
+</p>
