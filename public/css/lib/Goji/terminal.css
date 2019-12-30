@@ -99,6 +99,7 @@
 	font-size: inherit;
 	font-family: inherit;
 	border: 0;
+	white-space: pre;
 }
 
 .terminal__editor--interface {
@@ -117,21 +118,21 @@
 	margin-right: auto;
 }
 
-.terminal__editor .save,
-.terminal__editor .cancel {
+.terminal__editor .cancel,
+.terminal__editor .save {
 	cursor: pointer;
 }
 
-.terminal__editor .save:hover,
-.terminal__editor .cancel:hover {
+.terminal__editor .cancel:hover,
+.terminal__editor .save:hover {
 	font-weight: bold;
-}
-
-.terminal__editor .save {
-	color: var(--color-terminal-green);
-	margin-right: var(--gutter-thin);
 }
 
 .terminal__editor .cancel {
 	color: var(--color-terminal-red);
+	margin-right: var(--gutter-thin);
+}
+
+.terminal__editor .save {
+	color: var(--color-terminal-green);
 }

@@ -21,6 +21,7 @@
 		const EHLO = 'ehlo'; // Get current state from server
 		const LOG_IN = 'log-in'; // Request log in
 		const COMMAND = 'command'; // Regular command
+		const SAVE_FILE = 'save-file';
 
 		public function __construct() {
 
@@ -399,7 +400,7 @@
 
 					// File exists, read it
 					if (is_file($cmdParts[1])) {
-						$content = file_get_contents($cmdParts[1]);
+						$content = @file_get_contents($cmdParts[1]);
 						$newFile = false;
 					}
 
@@ -414,7 +415,8 @@
 						'file' => $cmdParts[1],
 						'filename' => basename($cmdParts[1]),
 						'new_file' => $newFile,
-						'content' => $content
+						'content' => $content,
+						'output' => '' // Needed to show old command
 					], true);
 				}
 
@@ -453,6 +455,27 @@
 				$this->command($_POST['command']);
 		}
 
+		private function processSaveFile(): void {
+
+			if (!$this->m_isLoggedIn)
+				HttpResponse::JSON([], false);
+
+			if (empty($_POST['file']) || !isset($_POST['content'])) {
+				HttpResponse::JSON([], false);
+			}
+
+			$file = trim($_POST['file']);
+			$dir = dirname($file);
+
+			if (!is_dir($dir))
+				mkdir($dir, 0777, true);
+
+			if (@file_put_contents($file, (string) $_POST['content']))
+				HttpResponse::JSON([], true);
+			else
+				HttpResponse::JSON([], false);
+		}
+
 		/**
 		 * Treat incoming data.
 		 *
@@ -472,6 +495,8 @@
 				$this->processLogIn();
 			else if ($_POST['request'] == self::COMMAND)
 				$this->processCommand();
+			else if ($_POST['request'] == self::SAVE_FILE)
+				$this->processSaveFile();
 
 			HttpResponse::JSON([], false);
 		}
