@@ -155,6 +155,7 @@ class Terminal {
 
 			this.m_history = document.createElement('div');
 				this.m_history.classList.add('terminal__history');
+				this.m_history.classList.add('hidden'); /* By default on password interface */
 					docFrag.appendChild(this.m_history);
 
 			this.m_historyPrevious = document.createElement('a');
@@ -301,12 +302,14 @@ class Terminal {
 		this.m_input.type = 'text';
 		this.m_input.name = 'terminal[command]';
 		this.m_editor.classList.remove('shown');
+		this.m_history.classList.remove('hidden');
 		this.m_input.focus();
 	}
 
 	switchToEditorInterface() {
 		this.m_mode = this.Mode.EDITOR;
 		this.m_editor.classList.add('shown');
+		this.m_history.classList.add('hidden');
 		this.m_editorTextArea.focus();
 	}
 
@@ -318,6 +321,7 @@ class Terminal {
 		this.m_input.type = 'password';
 		this.m_input.name = 'terminal[password]';
 		this.m_editor.classList.remove('shown');
+		this.m_history.classList.add('hidden');
 		this.m_input.focus();
 	}
 
