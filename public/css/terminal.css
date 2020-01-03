@@ -166,3 +166,27 @@
 .terminal__editor .save {
 	color: var(--color-terminal-green);
 }
+
+.terminal__history {
+	position: fixed;
+	bottom: var(--gutter-thin);
+	right: var(--gutter-thin);
+	display: none;
+}
+
+.terminal__history .previous,
+.terminal__history .next {
+	cursor: pointer;
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+}
+
+@media all and (any-hover: none) {
+	/* Touch devices usually don't have up and down arrows */
+	.terminal__history {
+		display: unset;
+	}
+}

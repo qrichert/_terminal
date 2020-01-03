@@ -34,6 +34,11 @@ class Terminal {
 				this.m_editorSave = null;
 				this.m_editorSaveWaitingForResponse = null;
 
+		this.m_history = null;
+
+			this.m_historyPrevious = null;
+			this.m_historyNext = null;
+
 		this.m_apiUrl = this.m_parent.dataset.action || location.href;
 
 		this.m_isWaitingForResponse = false;
@@ -124,12 +129,12 @@ class Terminal {
 
 				this.m_editorInterface = document.createElement('div');
 					this.m_editorInterface.classList.add('terminal__editor--interface');
-					this.m_editor.appendChild(this.m_editorInterface);
+						this.m_editor.appendChild(this.m_editorInterface);
 
 					this.m_editorFilename = document.createElement('p');
 						this.m_editorFilename.classList.add('filename');
 						this.m_editorFilename.textContent = '';
-						this.m_editorInterface.appendChild(this.m_editorFilename);
+							this.m_editorInterface.appendChild(this.m_editorFilename);
 
 					this.m_editorCancel = document.createElement('a');
 						this.m_editorCancel.classList.add('cancel');
@@ -148,14 +153,33 @@ class Terminal {
 
 						this.m_editorSave.appendChild(document.createTextNode(']'));
 
+			this.m_history = document.createElement('div');
+				this.m_history.classList.add('terminal__history');
+					docFrag.appendChild(this.m_history);
+
+			this.m_historyPrevious = document.createElement('a');
+				this.m_historyPrevious.classList.add('previous');
+				this.m_historyPrevious.textContent = '[⬆]';
+					this.m_history.appendChild(this.m_historyPrevious);
+
+			this.m_historyNext = document.createElement('a');
+				this.m_historyNext.classList.add('next');
+				this.m_historyNext.textContent = '[⬇]';
+					this.m_history.appendChild(this.m_historyNext);
+
 		this.m_parent.appendChild(docFrag);
 	}
 
 	addListeners() {
+
 		window.addEventListener('load', () => { this.restoreCommandHistory(); }, false);
 		window.addEventListener('unload', () => { this.saveCommandHistory(); }, false);
+
 		this.m_editorCancel.addEventListener('click', e => { e.preventDefault(); this.editorCancel(); }, false);
 		this.m_editorSave.addEventListener('click', e => { e.preventDefault(); this.editorSave(); }, false);
+
+		this.m_historyPrevious.addEventListener('click', e => { e.preventDefault(); this.commandHistoryPrevious(); }, false);
+		this.m_historyNext.addEventListener('click', e => { e.preventDefault(); this.commandHistoryNext(); }, false);
 	}
 
 	/**
