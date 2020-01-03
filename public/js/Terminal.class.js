@@ -23,6 +23,7 @@ class Terminal {
 					this.m_promptInfoWaitingForCommand = null;
 					this.m_promptInfoWaitingForResponse = null;
 				this.m_promptCommand = null;
+					this.m_password = null;
 					this.m_input = null;
 
 		this.m_editor = null;
@@ -59,8 +60,6 @@ class Terminal {
 		this.addListeners();
 
 		this.ehlo();
-
-		this.m_input.focus();
 	}
 
 	/**
@@ -112,10 +111,21 @@ class Terminal {
 					this.m_promptCommand.classList.add('terminal__prompt--command');
 						this.m_prompt.appendChild(this.m_promptCommand);
 
+					this.m_password = document.createElement('input');
+						this.m_password.type = 'password';
+						this.m_password.name = 'terminal[password]';
+						this.m_password.style.display = 'none';
+						this.m_password.addEventListener('keydown', e => { this.inputKeyEvent(e); }, false);
+							this.m_promptCommand.appendChild(this.m_password);
+
 					this.m_input = document.createElement('input');
-						this.m_input.autocapitalize = 'off';
-						this.m_input.spellcheck = 'false';
-						this.m_input.style.visibility = 'hidden';
+						this.m_input.type = 'text';
+						this.m_input.name = 'terminal[command]';
+						this.m_input.autocapitalize = 'none';
+						this.m_input.autocomplete = false;
+						this.m_input.autocorrect = false;
+						this.m_input.spellcheck = false;
+						this.m_input.style.display = 'none';
 						this.m_input.addEventListener('keydown', e => { this.inputKeyEvent(e); }, false);
 							this.m_promptCommand.appendChild(this.m_input);
 
@@ -299,8 +309,8 @@ class Terminal {
 	 */
 	switchToCommandInterface() {
 		this.m_mode = this.Mode.COMMAND;
-		this.m_input.type = 'text';
-		this.m_input.name = 'terminal[command]';
+		this.m_password.style.display = 'none';
+		this.m_input.style.display = null;
 		this.m_editor.classList.remove('shown');
 		this.m_history.classList.remove('hidden');
 		this.m_input.focus();
@@ -318,11 +328,11 @@ class Terminal {
 	 */
 	switchToPasswordInterface() {
 		this.m_mode = this.Mode.PASSWORD;
-		this.m_input.type = 'password';
-		this.m_input.name = 'terminal[password]';
+		this.m_password.style.display = null;
+		this.m_input.style.display = 'none';
 		this.m_editor.classList.remove('shown');
 		this.m_history.classList.add('hidden');
-		this.m_input.focus();
+		this.m_password.focus();
 	}
 
 	/**
@@ -352,6 +362,7 @@ class Terminal {
 
 		this.m_promptInfoWaitingForCommand.style.display = 'none';
 		this.m_promptInfoWaitingForResponse.style.display = 'inline';
+		this.m_password.disabled = true;
 		this.m_input.disabled = true;
 		this.m_editorTextArea.disabled = true; // Editor
 		this.m_editorCancel.style.visibility = 'hidden'; // Editor
@@ -364,6 +375,8 @@ class Terminal {
 
 		this.m_promptInfoWaitingForCommand.style.display = 'inline';
 		this.m_promptInfoWaitingForResponse.style.display = 'none';
+		this.m_password.disabled = false;
+		this.m_password.value = '';
 		this.m_input.disabled = false;
 		this.m_input.value = '';
 		this.m_editorSaveWaitingForResponse.textContent = ''; // Editor
@@ -454,7 +467,6 @@ class Terminal {
 
 		let end = () => {
 			this.stopWaitingForResponse();
-			this.m_input.focus();
 		};
 
 		let error = () => {
@@ -472,8 +484,6 @@ class Terminal {
 				error();
 				return;
 			}
-
-			this.m_input.style.visibility = 'visible';
 
 			if (r.response === 'ready') {
 				this.setPromptInfo(r.user, r.path);
@@ -507,11 +517,10 @@ class Terminal {
 	logIn() {
 		let data = new FormData();
 			data.append('request', 'log-in');
-			data.append('password', this.m_input.value);
+			data.append('password', this.m_password.value);
 
 		let end = () => {
 			this.stopWaitingForResponse();
-			this.m_input.focus();
 		};
 
 		let error = (r = null) => {
@@ -593,7 +602,6 @@ class Terminal {
 
 		let end = () => {
 			this.stopWaitingForResponse();
-			this.m_input.focus();
 		};
 
 		let error = (r = null) => {
