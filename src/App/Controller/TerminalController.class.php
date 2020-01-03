@@ -175,7 +175,6 @@
 		private function getSessionInfo(array &$info): void {
 
 			$username = trim(Terminal::execute('whoami'));
-				$username = SwissKnife::ceil_str($username, 20, '...');
 
 			$host = trim(Terminal::execute('hostname'));
 
@@ -194,10 +193,9 @@
 					$host = mb_substr($host, 0, mb_strpos($host, ' '));
 				}
 
-				$host = SwissKnife::ceil_str($host, 20, '...');
 
 			$info['user'] = $username . '@' . $host;
-			$info['path'] = SwissKnife::ceil_str($this->getCurrentDirectoryName(), 20, '...');
+			$info['path'] = $this->getCurrentDirectoryName();
 			$info['output'] = 'Last login: ' . date('D M j H:i:s');
 		}
 

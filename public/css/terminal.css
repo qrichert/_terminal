@@ -63,10 +63,25 @@
 .terminal__prompt--info .user { color: var(--color-terminal-green); font-weight: bold; }
 .terminal__prompt--info .path { color: var(--color-terminal-blue); font-weight: bold; }
 
+.terminal__prompt--info .user,
+.terminal__prompt--info .path {
+	display: inline-block;
+	max-width: 200px;
+	overflow-x: hidden;
+	text-overflow: ellipsis;
+}
+
 @media all and (max-width: 700px) {
 	.terminal__prompt--info .user,
 	.terminal__prompt--info .separator {
 		display: none;
+	}
+}
+
+@media all and (max-width: 500px) {
+	.terminal__prompt--info .user,
+	.terminal__prompt--info .path {
+		max-width: 110px;
 	}
 }
 
