@@ -1,10 +1,10 @@
 <?php
 
-	require_once '../lib/Settings.php';
-	require_once '../lib/RootPath.php';
-	require_once '../lib/AutoLoad.php';
+require_once '../lib/Settings.php';
+require_once '../lib/RootPath.php';
+require_once '../lib/AutoLoad.php';
 
-	use App\Controller\TerminalController;
+use App\Controller\TerminalController;
 
-	$terminalController = new TerminalController();
-		$terminalController->render();
+$terminalController = new TerminalController();
+	$terminalController->render();
