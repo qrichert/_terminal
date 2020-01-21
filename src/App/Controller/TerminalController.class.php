@@ -391,6 +391,12 @@ class TerminalController {
 				$content = '';
 				$newFile = true;
 
+				// No filename provided
+				if (empty($cmdParts[1])) {
+					$output[] = $this->getErrorMessage("No filename provided.");
+					continue;
+				}
+
 				if (is_dir($cmdParts[1])) {
 					$output[] = $this->getErrorMessage("'{$cmdParts[1]}' is a directory.");
 					continue;
