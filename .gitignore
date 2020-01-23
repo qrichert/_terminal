@@ -56,8 +56,7 @@ Thumbs.db
 /.idea/
 /venv/
 
-/_BACKUP_/*
-/_FACTORY_/*
+/_WIP_/*
 
 /var/*
 !/var/db/
