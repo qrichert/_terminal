@@ -182,8 +182,8 @@ class RegexPatterns {
 	public static function url(): string {
 
 		return <<<'EOT'
-		#\b((https?|ftp|file)://|(www|ftp)(\.))([-A-Z0-9+&@\#%?=~_|$!:,.;]*[A-Z0-9+&@\#%=~_|$])([-A-Z0-9+&@\#/%?=~_|$!:,.;]*[A-Z0-9+&@\#/%=~_|$])#i
-		EOT;
+			#\b((https?|ftp|file)://|(www|ftp)(\.))([-A-Z0-9+&@\#%?=~_|$!:,.;]*[A-Z0-9+&@\#%=~_|$])([-A-Z0-9+&@\#/%?=~_|$!:,.;]*[A-Z0-9+&@\#/%=~_|$])#i
+			EOT;
 	}
 
 	/**
@@ -194,7 +194,7 @@ class RegexPatterns {
 	public static function validateDomainName(): string {
 
 		return <<<'EOT'
-		#^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$#i
-		EOT;
+			#^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$#i
+			EOT;
 	}
 }
